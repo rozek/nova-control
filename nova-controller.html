@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="system">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nova Robot Controller</title>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+
+    /* ------------------------------------------------------------------ */
+    /*  color tokens — dark (default)                                       */
+    /* ------------------------------------------------------------------ */
+
+    :root {
+      --bg:           #111827;
+      --surface:      #1f2937;
+      --border:       #374151;
+      --border-head:  #1f2937;
+      --border-hover: #4b5563;
+      --fg:           #d1d5db;
+      --fg-strong:    #e5e7eb;
+      --fg-muted:     #6b7280;
+      --fg-dim:       #4b5563;
+      --accent:       #60a5fa;
+      --accent-s:     #93c5fd;
+      --track:        #374151;
+      --thumb-ring:   #1f2937;
+      --btn-alt-bg:   #374151;
+      --btn-alt-fg:   #d1d5db;
+      --btn-alt-hv:   #4b5563;
+      --err-bg:       #450a0a;
+      --err-bd:       #7f1d1d;
+      --err-fg:       #fca5a5;
+      --clr-send:     #f59e0b;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  color tokens — light                                               */
+    /* ------------------------------------------------------------------ */
+
+    html[data-theme="light"] {
+      --bg:           #f9fafb;
+      --surface:      #ffffff;
+      --border:       #e5e7eb;
+      --border-head:  #e5e7eb;
+      --border-hover: #d1d5db;
+      --fg:           #374151;
+      --fg-strong:    #111827;
+      --fg-muted:     #6b7280;
+      --fg-dim:       #9ca3af;
+      --accent:       #2563eb;
+      --accent-s:     #3b82f6;
+      --track:        #e5e7eb;
+      --thumb-ring:   #ffffff;
+      --btn-alt-bg:   #e5e7eb;
+      --btn-alt-fg:   #374151;
+      --btn-alt-hv:   #d1d5db;
+      --err-bg:       #fef2f2;
+      --err-bd:       #fecaca;
+      --err-fg:       #dc2626;
+      --clr-send:     #d97706;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  color tokens — system: inherit from OS preference                  */
+    /* ------------------------------------------------------------------ */
+
+    @media (prefers-color-scheme: light) {
+      html[data-theme="system"] {
+        --bg:           #f9fafb;
+        --surface:      #ffffff;
+        --border:       #e5e7eb;
+        --border-head:  #e5e7eb;
+        --border-hover: #d1d5db;
+        --fg:           #374151;
+        --fg-strong:    #111827;
+        --fg-muted:     #6b7280;
+        --fg-dim:       #9ca3af;
+        --accent:       #2563eb;
+        --accent-s:     #3b82f6;
+        --track:        #e5e7eb;
+        --thumb-ring:   #ffffff;
+        --btn-alt-bg:   #e5e7eb;
+        --btn-alt-fg:   #374151;
+        --btn-alt-hv:   #d1d5db;
+        --err-bg:       #fef2f2;
+        --err-bd:       #fecaca;
+        --err-fg:       #dc2626;
+        --clr-send:     #d97706;
+      }
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  layout                                                             */
+    /* ------------------------------------------------------------------ */
+
+    body {
+      font-family:'Segoe UI', system-ui, sans-serif;
+      background:var(--bg);
+      color:var(--fg);
+      min-height:100vh;
+      padding:1.5rem 2rem;
+      transition:background 0.25s, color 0.25s;
+    }
+
+    header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:1rem;
+      margin-bottom:2rem;
+      padding-bottom:1.25rem;
+      border-bottom:1px solid var(--border-head);
+    }
+
+    h1 {
+      font-size:1.5rem;
+      font-weight:700;
+      color:var(--accent);
+      letter-spacing:0.02em;
+    }
+
+    h1 span { color:var(--accent-s); font-weight:400 }
+
+    .controls { display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap }
+
+    /* ------------------------------------------------------------------ */
+    /*  theme switcher                                                     */
+    /* ------------------------------------------------------------------ */
+
+    .theme-switcher {
+      display:flex;
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:3px;
+      gap:2px;
+    }
+
+    .theme-btn {
+      padding:0.28rem 0.65rem;
+      border:none;
+      border-radius:5px;
+      font-size:0.78rem;
+      font-weight:500;
+      background:transparent;
+      color:var(--fg-muted);
+      cursor:pointer;
+      transition:background 0.2s, color 0.2s;
+      line-height:1.4;
+    }
+    .theme-btn:hover:not(.active) { color:var(--fg) }
+    .theme-btn.active {
+      background:var(--accent);
+      color:#fff;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  status + buttons                                                   */
+    /* ------------------------------------------------------------------ */
+
+    .status-dot {
+      width:10px; height:10px; border-radius:50%;
+      background:#ef4444; flex-shrink:0;
+      transition:background 0.4s;
+    }
+    .status-dot.connecting   { background:#f59e0b }
+    .status-dot.connected    { background:#22c55e }
+    .status-dot.disconnected { background:#ef4444 }
+
+    #status-text { font-size:0.875rem; color:var(--fg-muted); min-width:140px }
+
+    button {
+      padding:0.45rem 1rem;
+      border:none; border-radius:6px;
+      font-size:0.875rem; font-weight:600;
+      cursor:pointer;
+      transition:opacity 0.2s, background 0.2s, transform 0.1s;
+    }
+    button:active:not(:disabled) { transform:scale(0.96) }
+    button:disabled { opacity:0.3; cursor:default }
+
+    #btn-connect    { background:#3b82f6; color:#fff }
+    #btn-home       { background:#8b5cf6; color:#fff }
+    #btn-disconnect { background:var(--btn-alt-bg); color:var(--btn-alt-fg) }
+
+    #btn-connect:not(:disabled):hover    { background:#2563eb }
+    #btn-home:not(:disabled):hover       { background:#7c3aed }
+    #btn-disconnect:not(:disabled):hover { background:var(--btn-alt-hv) }
+
+    /* ------------------------------------------------------------------ */
+    /*  error banner                                                       */
+    /* ------------------------------------------------------------------ */
+
+    .error-banner {
+      display:none;
+      background:var(--err-bg);
+      border:1px solid var(--err-bd);
+      color:var(--err-fg);
+      padding:0.75rem 1rem;
+      border-radius:8px;
+      margin-bottom:1.25rem;
+      font-size:0.875rem;
+    }
+    .error-banner.visible { display:block }
+
+    /* ------------------------------------------------------------------ */
+    /*  servo panel                                                        */
+    /* ------------------------------------------------------------------ */
+
+    .servo-panel { display:grid; gap:1rem }
+
+    .servo-row {
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:1rem 1.25rem;
+      display:grid;
+      grid-template-columns:clamp(160px,22%,220px) 1fr 58px;
+      align-items:center;
+      gap:1.25rem;
+      transition:border-color 0.3s, background 0.25s;
+    }
+    .servo-row:has(.servo-slider:not(:disabled)):hover {
+      border-color:var(--border-hover);
+    }
+
+    .servo-name  { font-weight:600; font-size:0.95rem; color:var(--fg-strong) }
+    .servo-sub   { font-size:0.75rem; color:var(--fg-muted); margin-top:3px }
+    .servo-range { font-size:0.7rem; color:var(--fg-dim); margin-top:4px }
+
+    .slider-wrap { position:relative }
+
+    input[type="range"] {
+      width:100%; height:6px;
+      appearance:none;
+      background:var(--track);
+      border-radius:3px;
+      outline:none;
+      cursor:pointer;
+      display:block;
+      transition:background 0.25s;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      appearance:none;
+      width:18px; height:18px;
+      border-radius:50%;
+      background:var(--accent);
+      cursor:pointer;
+      box-shadow:0 0 0 3px var(--thumb-ring);
+      transition:background 0.2s, transform 0.1s, box-shadow 0.25s;
+    }
+    input[type="range"]:not(:disabled):active::-webkit-slider-thumb { transform:scale(1.2) }
+    input[type="range"]:not(:disabled):hover::-webkit-slider-thumb  { background:var(--accent-s) }
+    input[type="range"]:disabled { opacity:0.35; cursor:default }
+
+    .servo-value {
+      text-align:right;
+      font-size:1.05rem;
+      font-weight:700;
+      color:var(--accent);
+      font-variant-numeric:tabular-nums;
+      white-space:nowrap;
+      transition:color 0.2s;
+    }
+    .servo-value.sending { color:var(--clr-send) }
+
+    @media (max-width:560px) {
+      body { padding:1rem }
+      .servo-row {
+        grid-template-columns:1fr 52px;
+        grid-template-rows:auto auto;
+      }
+      .servo-label { grid-column:1/-1 }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Nova <span>Robot Controller</span></h1>
+    <div class="controls">
+      <div class="theme-switcher" id="theme-switcher">
+        <button class="theme-btn" data-theme-value="system">System</button>
+        <button class="theme-btn" data-theme-value="light">Light</button>
+        <button class="theme-btn" data-theme-value="dark">Dark</button>
+      </div>
+      <span class="status-dot disconnected" id="status-dot"></span>
+      <span id="status-text">not connected</span>
+      <button id="btn-connect">Connect</button>
+      <button id="btn-home" disabled>Home</button>
+      <button id="btn-disconnect" disabled>Disconnect</button>
+    </div>
+  </header>
+
+  <div class="error-banner" id="error-banner"></div>
+  <div class="servo-panel"  id="servo-panel"></div>
+
+  <script>
+    'use strict'
+
+    /*******************************************************************************
+    *                                                                              *
+    *                          Nova Robot Controller                               *
+    *                                                                              *
+    *******************************************************************************/
+
+    //----------------------------------------------------------------------------//
+    //                              servo configuration                           //
+    //----------------------------------------------------------------------------//
+
+    /**** protocol constants — must match Nova_SerialController.ino ****/
+
+    const BaudRate     = 9600
+    const HomePosition = { s1:90, s2:90, s3:110, s4:90, s5:95 }
+    const SafeRange    = {
+      s1:[ 45,135 ], s2:[ 10,170 ], s3:[ 40,150 ], s4:[ 30,180 ], s5:[ 20,150 ],
+    }
+
+    /**** ServoSpeed — °/ms so that the full safe range takes exactly 1 second ****/
+
+    const ServoSpeed = Object.freeze({
+      s1: (SafeRange.s1[1]-SafeRange.s1[0])/1000,
+      s2: (SafeRange.s2[1]-SafeRange.s2[0])/1000,
+      s3: (SafeRange.s3[1]-SafeRange.s3[0])/1000,
+      s4: (SafeRange.s4[1]-SafeRange.s4[0])/1000,
+      s5: (SafeRange.s5[1]-SafeRange.s5[0])/1000,
+    })
+
+    const StepIntervalMs = 20  // ms between ramp steps — full range takes 1 second
+
+    /**** ServoList — display order: body base first, then head axes ****/
+
+    const ServoList = [
+      { key:'s4', name:'Body Rotation', sub:'Z-axis (left / right)' },
+      { key:'s1', name:'Head Shift',    sub:'forward / back' },
+      { key:'s2', name:'Head Roll',     sub:'clockwise / counter-clockwise' },
+      { key:'s3', name:'Head Pitch',    sub:'up / down' },
+      { key:'s5', name:'Head Lift',     sub:'secondary axis' },
+    ]
+
+    //----------------------------------------------------------------------------//
+    //                              packet builder                                //
+    //----------------------------------------------------------------------------//
+
+    /**** clampServo ****/
+
+    function clampServo (Value, Key) {
+      const [Min, Max] = SafeRange[Key]
+      return Math.max(Min, Math.min(Max, Math.round(Value)))
+    }
+
+    /**** buildDirectPacket — 5-byte direct servo control packet ****/
+    // byte order matches Nova_SerialController.ino loop(): [s4, s3, s2, s1, s5]
+
+    function buildDirectPacket (State) {
+      return new Uint8Array([
+        clampServo(State.s4, 's4'),
+        clampServo(State.s3, 's3'),
+        clampServo(State.s2, 's2'),
+        clampServo(State.s1, 's1'),
+        clampServo(State.s5, 's5'),
+      ])
+    }
+
+    //----------------------------------------------------------------------------//
+    //                              serial transport                              //
+    //----------------------------------------------------------------------------//
+
+    let ActivePort   = null
+    let Writer       = null
+    let IsClosed     = true
+    let CurrentState = { ...HomePosition }
+    let PendingState = null
+    let LastSend     = Promise.resolve()
+
+    /**** scheduleUpdate — merge partial update into the one-slot pending queue ****/
+
+    function scheduleUpdate (Update) {
+      PendingState = { ...(PendingState ?? CurrentState), ...Update }
+    }
+
+    /**** flushPending — ramp CurrentState toward PendingState one step at a time ****/
+    // each step moves every servo by at most ServoSpeed[k]*StepIntervalMs degrees,
+    // so the full safe range takes 1 second; concurrent calls chain on LastSend.
+
+    function flushPending () {
+      const Previous = LastSend
+      LastSend = (async () => {
+        try { await Previous } catch (Signal) { /* keep chain alive */ }
+        while (PendingState != null) {
+          if (IsClosed || (Writer == null)) { return }
+          const Target    = PendingState
+          let AllReached  = true
+          const Step      = { ...CurrentState }
+          for (const Key of [ 's1','s2','s3','s4','s5' ]) {
+            const Diff    = Target[Key]-CurrentState[Key]
+            const MaxStep = ServoSpeed[Key]*StepIntervalMs
+            if (Math.abs(Diff) > MaxStep) {
+              Step[Key]  = CurrentState[Key]+Math.sign(Diff)*MaxStep
+              AllReached = false
+            } else {
+              Step[Key] = Target[Key]
+            }
+          }
+          if (AllReached) { PendingState = null }
+          CurrentState = { ...Step }
+          await Writer.write(buildDirectPacket(Step))
+          if (! AllReached) {
+            await new Promise((resolve) => setTimeout(resolve, StepIntervalMs))
+          }
+        }
+      })()
+      return LastSend
+    }
+
+    //----------------------------------------------------------------------------//
+    //                              connection management                         //
+    //----------------------------------------------------------------------------//
+
+    /**** connect — opens the Web Serial port picker and connects ****/
+    // must be called from a user gesture (button click) — browser requirement
+
+    async function connect () {
+      if (! ('serial' in navigator)) {
+        showError(
+          'Web Serial API is not available — please use Chrome or Edge 89+, ' +
+          'and make sure the page is served over HTTPS or localhost.'
+        )
+        return
+      }
+      try {
+        setStatus('connecting', 'requesting port…')
+        const Port = await navigator.serial.requestPort({})
+        await Port.open({ baudRate:BaudRate })
+        Writer   = Port.writable.getWriter()
+        IsClosed = false
+        ActivePort = Port
+
+        setStatus('connecting', 'waiting for Arduino to reset…')
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+
+        scheduleUpdate({ ...HomePosition })
+        await flushPending()
+
+        setConnected(true)
+      } catch (Signal) {
+        IsClosed   = true
+        Writer     = null
+        ActivePort = null
+        // NotFoundError means the user closed the picker — no banner needed
+        if (Signal.name !== 'NotFoundError') {
+          showError(`Connection failed: ${Signal.message ?? String(Signal)}`)
+        }
+        setStatus('disconnected', 'not connected')
+        setConnected(false)
+      }
+    }
+
+    /**** disconnect ****/
+
+    async function disconnect () {
+      IsClosed = true
+      if (Writer != null) {
+        try { Writer.releaseLock() } catch (Signal) { /* already released */ }
+        Writer = null
+      }
+      if (ActivePort != null) {
+        try { await ActivePort.close() } catch (Signal) { /* already closed */ }
+        ActivePort = null
+      }
+      setStatus('disconnected', 'not connected')
+      setConnected(false)
+    }
+
+    //----------------------------------------------------------------------------//
+    //                              UI helpers                                    //
+    //----------------------------------------------------------------------------//
+
+    /**** setStatus ****/
+
+    function setStatus (DotClass, Text) {
+      const Dot  = document.getElementById('status-dot')
+      const Span = document.getElementById('status-text')
+      Dot.className    = `status-dot ${DotClass}`
+      Span.textContent = Text
+    }
+
+    /**** setConnected — toggle button and slider states ****/
+
+    function setConnected (Connected) {
+      document.getElementById('btn-connect').disabled    =  Connected
+      document.getElementById('btn-home').disabled       = ! Connected
+      document.getElementById('btn-disconnect').disabled = ! Connected
+      document.querySelectorAll('.servo-slider').forEach(
+        (El) => { El.disabled = ! Connected }
+      )
+      if (Connected) { setStatus('connected', 'connected') }
+    }
+
+    /**** showError ****/
+
+    function showError (Message) {
+      const Banner = document.getElementById('error-banner')
+        Banner.textContent = Message
+        Banner.classList.add('visible')
+      setTimeout(() => { Banner.classList.remove('visible') }, 7000)
+    }
+
+    //----------------------------------------------------------------------------//
+    //                              theme switcher                                //
+    //----------------------------------------------------------------------------//
+
+    const ThemeKey = 'nova-theme'
+
+    /**** applyTheme — sets data-theme on <html>, marks active button, persists ****/
+
+    function applyTheme (Theme) {
+      document.documentElement.dataset.theme = Theme
+      document.querySelectorAll('.theme-btn').forEach((Btn) => {
+        Btn.classList.toggle('active', Btn.dataset.themeValue === Theme)
+      })
+      localStorage.setItem(ThemeKey, Theme)
+    }
+
+    document.querySelectorAll('.theme-btn').forEach((Btn) => {
+      Btn.addEventListener('click', () => { applyTheme(Btn.dataset.themeValue) })
+    })
+
+    applyTheme(localStorage.getItem(ThemeKey) ?? 'system')
+
+    //----------------------------------------------------------------------------//
+    //                              servo panel                                   //
+    //----------------------------------------------------------------------------//
+
+    /**** buildServoPanel — create one slider row for each servo ****/
+
+    function buildServoPanel () {
+      const Panel = document.getElementById('servo-panel')
+      for (const { key, name, sub } of ServoList) {
+        const [Min, Max] = SafeRange[key]
+        const Home       = HomePosition[key]
+
+        const Row = document.createElement('div')
+          Row.className = 'servo-row'
+          Row.innerHTML = `
+            <div class="servo-label">
+              <div class="servo-name">${name}</div>
+              <div class="servo-sub">${sub}</div>
+              <div class="servo-range">${Min}° – ${Max}°</div>
+            </div>
+            <div class="slider-wrap">
+              <input class="servo-slider" type="range"
+                id="slider-${key}" data-key="${key}"
+                min="${Min}" max="${Max}" value="${Home}"
+                disabled/>
+            </div>
+            <div class="servo-value" id="value-${key}">${Home}°</div>
+          `
+        Panel.appendChild(Row)
+
+        const Slider = Row.querySelector('.servo-slider')
+          Slider.addEventListener('input', onSliderInput)
+      }
+    }
+
+    /**** onSliderInput — update value label and queue a packet ****/
+
+    function onSliderInput (Event) {
+      const Key   = Event.target.dataset.key
+      const Angle = parseInt(Event.target.value, 10)
+
+      const Display = document.getElementById(`value-${Key}`)
+        Display.textContent = `${Angle}°`
+        Display.classList.add('sending')
+
+      scheduleUpdate({ [Key]:Angle })
+      flushPending()
+        .then(() => { Display.classList.remove('sending') })
+        .catch((Signal) => {
+          Display.classList.remove('sending')
+          showError(`Send error: ${Signal.message ?? String(Signal)}`)
+        })
+    }
+
+    //----------------------------------------------------------------------------//
+    //                              event wiring                                  //
+    //----------------------------------------------------------------------------//
+
+    document.getElementById('btn-connect').addEventListener('click', () => {
+      connect().catch(
+        (Signal) => { showError(`Unexpected error: ${Signal.message ?? String(Signal)}`) }
+      )
+    })
+
+    document.getElementById('btn-disconnect').addEventListener('click', () => {
+      disconnect().catch(
+        (Signal) => { showError(`Disconnect error: ${Signal.message ?? String(Signal)}`) }
+      )
+    })
+
+    document.getElementById('btn-home').addEventListener('click', () => {
+      for (const { key } of ServoList) {
+        const HomeVal = HomePosition[key]
+        const Slider  = document.getElementById(`slider-${key}`)
+        const Display = document.getElementById(`value-${key}`)
+        Slider.value        = String(HomeVal)
+        Display.textContent = `${HomeVal}°`
+      }
+      scheduleUpdate({ ...HomePosition })
+      flushPending().catch(
+        (Signal) => { showError(`Home error: ${Signal.message ?? String(Signal)}`) }
+      )
+    })
+
+    //----------------------------------------------------------------------------//
+    //                              initialise                                    //
+    //----------------------------------------------------------------------------//
+
+    buildServoPanel()
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+{
+  "name": "nova-control-mcp-server",
+  "description": "MCP server for controlling a NOVA DIY Artificial Intelligence Robot by Creoqode",
+  "version": "0.0.1",
+  "type": "module",
+  "keywords": [
+    "nova",
+    "creoqode",
+    "robot",
+    "mcp",
+    "mcp-server"
+  ],
+  "author": "Andreas Rozek",
+  "homepage": "https://github.com/rozek/nova-control#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rozek/nova-control.git",
+    "directory": "packages/nova-control-mcp-server"
+  },
+  "bugs": {
+    "url": "https://github.com/rozek/nova-control/issues"
+  },
+  "license": "MIT",
+  "bin": {
+    "nova-control-mcp": "./dist/nova-control-mcp-server.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "nova-control-node": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.0"
+  }
+}
