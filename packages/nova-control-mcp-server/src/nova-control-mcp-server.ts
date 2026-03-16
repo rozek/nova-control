@@ -8,6 +8,7 @@
 // nova-control-command over the Model Context Protocol (stdio transport)
 
 import { fileURLToPath } from 'node:url'
+import { realpathSync }  from 'node:fs'
 import { parseArgs }     from 'node:util'
 
 import { Server }               from '@modelcontextprotocol/sdk/server/index.js'
@@ -372,7 +373,8 @@ async function main ():Promise<void> {
 //----------------------------------------------------------------------------//
 
 // only run when this file is executed as the entry point, not when imported
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// realpathSync resolves any npm/npx symlinks so the comparison works correctly
+if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((Signal) => {
     process.stderr.write(
       `nova-control-mcp: fatal: ${(Signal as Error).message ?? Signal}\n`

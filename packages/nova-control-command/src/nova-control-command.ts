@@ -8,6 +8,7 @@
 // an interactive REPL, and script-file execution
 
 import { fileURLToPath } from 'node:url'
+import { realpathSync }  from 'node:fs'
 import { Command }  from 'commander'
 import { openNova } from 'nova-control-node'
 import type { NovaController, ServoUpdate } from 'nova-control-node'
@@ -396,7 +397,8 @@ async function main ():Promise<void> {
 //----------------------------------------------------------------------------//
 
 // only run when this file is executed as the entry point, not when imported
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+// realpathSync resolves any npm/npx symlinks so the comparison works correctly
+if (realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch((Signal) => {
     process.stderr.write(
       `${_CommandName}: fatal: ${(Signal as Error).message ?? Signal}\n`

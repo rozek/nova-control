@@ -1,7 +1,7 @@
 {
   "name": "nova-control-node",
   "description": "Control a NOVA DIY Artificial Intelligence Robot by Creoqode from Node.js",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "type": "module",
   "keywords": [
     "nova",

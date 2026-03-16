@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import { fileURLToPath as e } from "node:url";
-import { Command as t } from "commander";
-import { openNova as n } from "nova-control-node";
-import r from "node:readline";
-import i from "node:fs/promises";
+import { realpathSync as t } from "node:fs";
+import { Command as n } from "commander";
+import { openNova as r } from "nova-control-node";
+import i from "node:readline";
+import a from "node:fs/promises";
 //#region src/CommandTokenizer.ts
-function a(e) {
+function o(e) {
 	let t = [], n = "", r = 0;
 	for (; r < e.length;) {
 		let i = e[r];
@@ -34,24 +35,24 @@ function a(e) {
 }
 //#endregion
 //#region src/REPL.ts
-async function o(e, t) {
-	let n = process.stdin.isTTY, i = n ? `\x1b[1m${e}>\x1b[0m ` : `${e}> `, o = r.createInterface({
+async function s(e, t) {
+	let n = process.stdin.isTTY, r = n ? `\x1b[1m${e}>\x1b[0m ` : `${e}> `, a = i.createInterface({
 		input: process.stdin,
 		output: process.stdout,
 		terminal: n,
-		prompt: i
+		prompt: r
 	});
-	n && (process.stdout.write("NOVA interactive shell — type \"help [command]\" for help, \"exit\" to quit\n"), o.prompt());
-	for await (let r of o) {
+	n && (process.stdout.write("NOVA interactive shell — type \"help [command]\" for help, \"exit\" to quit\n"), a.prompt());
+	for await (let r of a) {
 		let i = r.trim();
 		if (i === "" || i.startsWith("#")) {
-			n && o.prompt();
+			n && a.prompt();
 			continue;
 		}
 		if (i === "exit" || i === "quit") break;
-		let s = a(i);
+		let s = o(i);
 		if (s.length === 0) {
-			n && o.prompt();
+			n && a.prompt();
 			continue;
 		}
 		try {
@@ -59,48 +60,48 @@ async function o(e, t) {
 		} catch (t) {
 			process.stderr.write(`${e}: ${t.message}\n`);
 		}
-		n && o.prompt();
+		n && a.prompt();
 	}
-	o.close();
+	a.close();
 }
 //#endregion
 //#region src/ScriptRunner.ts
-async function s(e, t, n) {
-	let o;
-	if (t === "-") o = process.stdin;
+async function c(e, t, n) {
+	let r;
+	if (t === "-") r = process.stdin;
 	else try {
-		o = (await i.open(t)).createReadStream();
+		r = (await a.open(t)).createReadStream();
 	} catch {
 		return process.stderr.write(`nova-control: cannot open script '${t}'\n`), 2;
 	}
-	let s = r.createInterface({
-		input: o,
+	let s = i.createInterface({
+		input: r,
 		terminal: !1
-	}), l = 0;
+	}), c = 0;
 	for await (let t of s) {
 		let r = t.trim();
 		if (r === "" || r.startsWith("#")) continue;
-		let i = a(r);
+		let i = o(r);
 		if (i.length === 0) continue;
-		let o = 0;
+		let a = 0;
 		try {
-			o = await n(i);
+			a = await n(i);
 		} catch (e) {
-			o = 1, process.stderr.write(`nova-control: ${e.message}\n`);
+			a = 1, process.stderr.write(`nova-control: ${e.message}\n`);
 		}
-		if (o !== 0) switch (l = o, e) {
-			case "stop": return s.close(), o;
+		if (a !== 0) switch (c = a, e) {
+			case "stop": return s.close(), a;
 			case "continue": break;
 			case "ask":
-				if (!await c()) return s.close(), o;
+				if (!await l()) return s.close(), a;
 				break;
 		}
 	}
-	return s.close(), l;
+	return s.close(), c;
 }
-async function c() {
+async function l() {
 	return process.stdin.isTTY ? new Promise((e) => {
-		let t = r.createInterface({
+		let t = i.createInterface({
 			input: process.stdin,
 			output: process.stdout
 		});
@@ -111,105 +112,105 @@ async function c() {
 }
 //#endregion
 //#region src/nova-control-command.ts
-var l = {
+var u = {
 	OK: 0,
 	GeneralError: 1,
 	UsageError: 2
-}, u = class extends Error {
+}, d = class extends Error {
 	ExitCode;
-	constructor(e, t = l.GeneralError) {
+	constructor(e, t = u.GeneralError) {
 		super(e), this.name = "NovaCommandError", this.ExitCode = t;
 	}
-}, d = "nova-control", f, p = 9600, m = "stop", h;
-async function g() {
-	if (f == null) throw new u("--port is required — specify the serial port (e.g. /dev/ttyACM0 or COM3)", l.UsageError);
-	return h ??= await n(f, p), h;
+}, f = "nova-control", p, m = 9600, h = "stop", g;
+async function _() {
+	if (p == null) throw new d("--port is required — specify the serial port (e.g. /dev/ttyACM0 or COM3)", u.UsageError);
+	return g ??= await r(p, m), g;
 }
-function _() {
-	h != null && (h.destroy(), h = void 0);
+function v() {
+	g != null && (g.destroy(), g = void 0);
 }
-function v(e, t = 9600, n = "stop") {
-	f = e, p = t, m = n;
+function y(e, t = 9600, n = "stop") {
+	p = e, m = t, h = n;
 }
-function y() {
-	_(), f = void 0, p = 9600, m = "stop";
+function b() {
+	v(), p = void 0, m = 9600, h = "stop";
 }
-function b(e) {
+function x(e) {
 	e.exitOverride(), e.configureOutput({ writeErr: () => {} });
-	for (let t of e.commands) b(t);
+	for (let t of e.commands) x(t);
 }
-function x(e = !1) {
-	let n = new t(d);
-	return n.description("NOVA robot arm CLI").allowUnknownOption(!1).configureOutput({ writeErr: () => {} }), e || (n.option("--port <path>", "serial port path (e.g. /dev/ttyACM0 on Linux/macOS, COM3 on Windows)").option("--baud <rate>", "baud rate (default: 9600)", "9600").option("--on-error <mode>", "script error mode: stop | continue | ask (default: stop)"), n.hook("preAction", (e, t) => {
+function S(e = !1) {
+	let t = new n(f);
+	return t.description("NOVA robot arm CLI").allowUnknownOption(!1).configureOutput({ writeErr: () => {} }), e || (t.option("--port <path>", "serial port path (e.g. /dev/ttyACM0 on Linux/macOS, COM3 on Windows)").option("--baud <rate>", "baud rate (default: 9600)", "9600").option("--on-error <mode>", "script error mode: stop | continue | ask (default: stop)"), t.hook("preAction", (e, t) => {
 		let n = t.optsWithGlobals();
-		f = n.port, p = Number(n.baud ?? "9600"), m = n.onError ?? "stop";
-	})), n.command("home").description("send all servos to their home positions").action(async () => {
-		await (await g()).home();
-	}), n.command("move").description("set one or more servo positions without interrupting the others").option("--shift-to <deg>", "shift head forward (>90°) or back (<90°) — s1").option("--roll-to <deg>", "roll head clockwise (>90°) or counter-clockwise (<90°) — s2").option("--pitch-to <deg>", "pitch head up (>110°) or down (<110°) — s3").option("--rotate-to <deg>", "rotate body around Z-axis — s4").option("--lift-to <deg>", "lift head on secondary axis, range 20°–150° — s5").action(async (e) => {
+		p = n.port, m = Number(n.baud ?? "9600"), h = n.onError ?? "stop";
+	})), t.command("home").description("send all servos to their home positions").action(async () => {
+		await (await _()).home();
+	}), t.command("move").description("set one or more servo positions without interrupting the others").option("--shift-to <deg>", "shift head forward (>90°) or back (<90°) — s1").option("--roll-to <deg>", "roll head clockwise (>90°) or counter-clockwise (<90°) — s2").option("--pitch-to <deg>", "pitch head up (>110°) or down (<110°) — s3").option("--rotate-to <deg>", "rotate body around Z-axis — s4").option("--lift-to <deg>", "lift head on secondary axis, range 20°–150° — s5").action(async (e) => {
 		let t = {};
-		if (e.shiftTo != null && (t.s1 = Number(e.shiftTo)), e.rollTo != null && (t.s2 = Number(e.rollTo)), e.pitchTo != null && (t.s3 = Number(e.pitchTo)), e.rotateTo != null && (t.s4 = Number(e.rotateTo)), e.liftTo != null && (t.s5 = Number(e.liftTo)), Object.keys(t).length === 0) throw new u("move: specify at least one servo option (--shift-to, --roll-to, --pitch-to, --rotate-to, --lift-to)", l.UsageError);
-		let n = await g();
+		if (e.shiftTo != null && (t.s1 = Number(e.shiftTo)), e.rollTo != null && (t.s2 = Number(e.rollTo)), e.pitchTo != null && (t.s3 = Number(e.pitchTo)), e.rotateTo != null && (t.s4 = Number(e.rotateTo)), e.liftTo != null && (t.s5 = Number(e.liftTo)), Object.keys(t).length === 0) throw new d("move: specify at least one servo option (--shift-to, --roll-to, --pitch-to, --rotate-to, --lift-to)", u.UsageError);
+		let n = await _();
 		n.State = t, await n.sendServoState();
-	}), n.command("shift-to").description("shift head forward (>90°) or back (<90°) — s1").argument("<deg>", "target angle in degrees").action(async (e) => {
-		let t = await g();
+	}), t.command("shift-to").description("shift head forward (>90°) or back (<90°) — s1").argument("<deg>", "target angle in degrees").action(async (e) => {
+		let t = await _();
 		t.State = { s1: Number(e) }, await t.sendServoState();
-	}), n.command("roll-to").description("roll head clockwise (>90°) or counter-clockwise (<90°) — s2").argument("<deg>", "target angle in degrees").action(async (e) => {
-		let t = await g();
+	}), t.command("roll-to").description("roll head clockwise (>90°) or counter-clockwise (<90°) — s2").argument("<deg>", "target angle in degrees").action(async (e) => {
+		let t = await _();
 		t.State = { s2: Number(e) }, await t.sendServoState();
-	}), n.command("pitch-to").description("pitch head up (>110°) or down (<110°) — s3").argument("<deg>", "target angle in degrees").action(async (e) => {
-		let t = await g();
+	}), t.command("pitch-to").description("pitch head up (>110°) or down (<110°) — s3").argument("<deg>", "target angle in degrees").action(async (e) => {
+		let t = await _();
 		t.State = { s3: Number(e) }, await t.sendServoState();
-	}), n.command("rotate-to").description("rotate body around Z-axis — s4").argument("<deg>", "target angle in degrees").action(async (e) => {
-		let t = await g();
+	}), t.command("rotate-to").description("rotate body around Z-axis — s4").argument("<deg>", "target angle in degrees").action(async (e) => {
+		let t = await _();
 		t.State = { s4: Number(e) }, await t.sendServoState();
-	}), n.command("lift-to").description("lift head on secondary axis, range 20°–150° — s5").argument("<deg>", "target angle in degrees").action(async (e) => {
-		let t = await g();
+	}), t.command("lift-to").description("lift head on secondary axis, range 20°–150° — s5").argument("<deg>", "target angle in degrees").action(async (e) => {
+		let t = await _();
 		t.State = { s5: Number(e) }, await t.sendServoState();
-	}), n.command("wait").description("pause for <ms> milliseconds before the next command").argument("<ms>", "duration in milliseconds (non-negative number)").action(async (e) => {
+	}), t.command("wait").description("pause for <ms> milliseconds before the next command").argument("<ms>", "duration in milliseconds (non-negative number)").action(async (e) => {
 		let t = Number(e);
-		if (isNaN(t) || t < 0) throw new u(`wait: invalid duration '${e}' — expected a non-negative number`, l.UsageError);
+		if (isNaN(t) || t < 0) throw new d(`wait: invalid duration '${e}' — expected a non-negative number`, u.UsageError);
 		await new Promise((e) => setTimeout(e, t));
-	}), n.command("state").description("print the current servo state as JSON").action(async () => {
-		let e = await g();
+	}), t.command("state").description("print the current servo state as JSON").action(async () => {
+		let e = await _();
 		process.stdout.write(JSON.stringify(e.State) + "\n");
-	}), e || (n.command("shell").description("start an interactive REPL").action(async () => {
-		await o(d, (e) => S(e));
-	}), n.option("--script <file>", "run commands from a script file (use - for stdin)").action(async (e) => {
+	}), e || (t.command("shell").description("start an interactive REPL").action(async () => {
+		await s(f, (e) => C(e));
+	}), t.option("--script <file>", "run commands from a script file (use - for stdin)").action(async (e) => {
 		if (e.script != null) {
-			let t = await s(m, e.script, S);
+			let t = await c(h, e.script, C);
 			process.exit(t);
-		} else process.stdout.write(n.helpInformation()), process.exit(l.OK);
-	}), n.addHelpCommand(!0)), n;
+		} else process.stdout.write(t.helpInformation()), process.exit(u.OK);
+	}), t.addHelpCommand(!0)), t;
 }
-async function S(e) {
-	if (e.length === 0) return l.OK;
-	let t = x(!0);
-	b(t);
+async function C(e) {
+	if (e.length === 0) return u.OK;
+	let t = S(!0);
+	x(t);
 	try {
 		return await t.parseAsync([
 			"node",
-			d,
+			f,
 			...e
-		]), l.OK;
+		]), u.OK;
 	} catch (t) {
 		let n = t;
-		return n.code === "commander.help" || n.code === "commander.helpDisplayed" ? l.OK : n.code === "commander.unknownCommand" ? (process.stderr.write(`${d}: unknown command '${e[0]}' — try '${d} help'\n`), l.UsageError) : n.code === "commander.unknownOption" || n.code === "commander.missingArgument" || n.code === "commander.missingMandatoryOptionValue" ? (process.stderr.write(`${d}: ${n.message}\n`), l.UsageError) : t instanceof u ? (process.stderr.write(`${d}: ${t.message}\n`), t.ExitCode) : (process.stderr.write(`${d}: ${t.message ?? String(t)}\n`), l.GeneralError);
+		return n.code === "commander.help" || n.code === "commander.helpDisplayed" ? u.OK : n.code === "commander.unknownCommand" ? (process.stderr.write(`${f}: unknown command '${e[0]}' — try '${f} help'\n`), u.UsageError) : n.code === "commander.unknownOption" || n.code === "commander.missingArgument" || n.code === "commander.missingMandatoryOptionValue" ? (process.stderr.write(`${f}: ${n.message}\n`), u.UsageError) : t instanceof d ? (process.stderr.write(`${f}: ${t.message}\n`), t.ExitCode) : (process.stderr.write(`${f}: ${t.message ?? String(t)}\n`), u.GeneralError);
 	}
 }
-async function C() {
-	let e = x();
-	b(e);
+async function w() {
+	let e = S();
+	x(e);
 	try {
 		await e.parseAsync(process.argv);
 	} catch (t) {
 		let n = t;
-		(n.code === "commander.help" || n.code === "commander.helpDisplayed" || n.code === "commander.version") && process.exit(l.OK), (n.code === "commander.unknownCommand" || n.code === "commander.unknownOption" || n.code === "commander.missingArgument" || n.code === "commander.missingMandatoryOptionValue") && (process.stderr.write(`${d}: ${n.message}\n\n`), process.stderr.write(e.helpInformation()), process.exit(l.UsageError)), t instanceof u && (process.stderr.write(`${d}: ${t.message}\n`), process.exit(t.ExitCode)), process.stderr.write(`${d}: ${t.message ?? String(t)}\n`), process.exit(l.GeneralError);
+		(n.code === "commander.help" || n.code === "commander.helpDisplayed" || n.code === "commander.version") && process.exit(u.OK), (n.code === "commander.unknownCommand" || n.code === "commander.unknownOption" || n.code === "commander.missingArgument" || n.code === "commander.missingMandatoryOptionValue") && (process.stderr.write(`${f}: ${n.message}\n\n`), process.stderr.write(e.helpInformation()), process.exit(u.UsageError)), t instanceof d && (process.stderr.write(`${f}: ${t.message}\n`), process.exit(t.ExitCode)), process.stderr.write(`${f}: ${t.message ?? String(t)}\n`), process.exit(u.GeneralError);
 	} finally {
-		_();
+		v();
 	}
 }
-process.argv[1] === e(import.meta.url) && C().catch((e) => {
-	process.stderr.write(`${d}: fatal: ${e.message ?? e}\n`), process.exit(l.GeneralError);
+t(process.argv[1]) === e(import.meta.url) && w().catch((e) => {
+	process.stderr.write(`${f}: fatal: ${e.message ?? e}\n`), process.exit(u.GeneralError);
 });
 //#endregion
-export { y as _destroyForTests, v as _setupForTests, S as executeTokens };
+export { b as _destroyForTests, y as _setupForTests, C as executeTokens };
