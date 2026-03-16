@@ -2,8 +2,6 @@
 
 Control a [Creoqode Nova DIY AI Robot](https://www.kickstarter.com/projects/creoqode/nova-diy-artificial-intelligence-robot) from a browser, Node.js, the command line, or an AI assistant — over USB serial.
 
-You can control your connected Nova robot [directly from within your browser](https://rozek.github.io/nova-control/nova-controller.html).
-
 ---
 
 ## Overview

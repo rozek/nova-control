@@ -15,13 +15,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 /**** Hoisted — shared mock objects, available in vi.mock factory ****/
 
 const Hoisted = vi.hoisted(() => {
-  type Cb  = (e: Error | null) => void
-  type WCb = (e: Error | null) => void
+  type Cb  = (e:Error|null) => void
+  type WCb = (e:Error|null) => void
 
   const Port = {
-    open:  vi.fn((cb: Cb)                  => cb(null)),
-    write: vi.fn((_data: Buffer, cb: WCb)  => cb(null)),
-    drain: vi.fn((cb: Cb)                  => cb(null)),
+    open:  vi.fn((cb:Cb)                  => cb(null)),
+    write: vi.fn((_data:Buffer, cb:WCb)  => cb(null)),
+    drain: vi.fn((cb:Cb)                  => cb(null)),
     close: vi.fn(),
   }
 
@@ -46,16 +46,16 @@ import { openNova, HomePosition, BaudRate, type NovaController } from '../nova-c
 /**** resetPortMocks — restores all port spy implementations to defaults ****/
 
 function resetPortMocks ():void {
-  Hoisted.Port.open.mockReset().mockImplementation((cb: (e: null) => void) => cb(null))
-  Hoisted.Port.write.mockReset().mockImplementation((_d: Buffer, cb: (e: null) => void) => cb(null))
-  Hoisted.Port.drain.mockReset().mockImplementation((cb: (e: null) => void) => cb(null))
+  Hoisted.Port.open.mockReset().mockImplementation((cb:(e:null) => void) => cb(null))
+  Hoisted.Port.write.mockReset().mockImplementation((_d:Buffer, cb:(e:null) => void) => cb(null))
+  Hoisted.Port.drain.mockReset().mockImplementation((cb:(e:null) => void) => cb(null))
   Hoisted.Port.close.mockReset()
   Hoisted.MockSerialPort.mockReset().mockImplementation(function () { return Hoisted.Port })
 }
 
 /**** writtenBytes — returns the Uint8Array from the nth Port.write call ****/
 
-function writtenBytes (CallIndex: number = 0):Uint8Array {
+function writtenBytes (CallIndex:number = 0):Uint8Array {
   return new Uint8Array(Hoisted.Port.write.mock.calls[CallIndex][0] as Buffer)
 }
 
@@ -111,7 +111,7 @@ describe('transport (T)', () => {
 
   it('T-04: Port.open error causes openNova to reject', async () => {
     Hoisted.Port.open.mockReset().mockImplementation(
-      (cb: (e: Error) => void) => cb(new Error('open failed'))
+      (cb:(e:Error) => void) => cb(new Error('open failed'))
     )
     vi.useFakeTimers()
     await expect(openNova('/dev/ttyACM0')).rejects.toThrow('open failed')
@@ -149,12 +149,12 @@ describe('transport (T)', () => {
     vi.useRealTimers()
 
     // defer write callback — use regular function so it can be called with new
-    let TriggerWrite: (() => void) | undefined
+    let TriggerWrite:(()=>void)|undefined
     Hoisted.Port.write.mockReset().mockImplementation(
-      function (_d: Buffer, cb: (e: null) => void) { TriggerWrite = () => cb(null) }
+      function (_d:Buffer, cb:(e:null) => void) { TriggerWrite = () => cb(null) }
     )
     Hoisted.Port.drain.mockReset().mockImplementation(
-      function (cb: (e: null) => void) { cb(null) }
+      function (cb:(e:null) => void) { cb(null) }
     )
 
     const HomePromise = TestNova.home()
@@ -184,7 +184,7 @@ describe('transport (T)', () => {
     vi.useRealTimers()
 
     Hoisted.Port.write.mockReset().mockImplementation(
-      (_d: Buffer, cb: (e: Error) => void) => cb(new Error('write failed'))
+      (_d:Buffer, cb:(e:Error) => void) => cb(new Error('write failed'))
     )
 
     await expect(TestNova.home()).rejects.toThrow('write failed')

@@ -16,7 +16,7 @@ import { runScript } from '../ScriptRunner.js'
 /**** makeExecute — creates a mock execute function with configurable behaviour ****/
 
 function makeExecute (resultsByLine:number[]):
-  { execute:(Tokens:string[]) => Promise<number>; calls:string[][] } {
+  { execute:(Tokens:string[])=>Promise<number>; calls:string[][] } {
   const calls:string[][] = []
   let   CallIndex = 0
 

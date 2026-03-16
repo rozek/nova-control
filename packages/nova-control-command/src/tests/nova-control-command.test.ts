@@ -16,7 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 /**** hoisted variables shared between vi.mock factories and test bodies ****/
 
 const Hoisted = vi.hoisted(() => {
-  let LastStateUpdate: Record<string, number> | undefined
+  let LastStateUpdate:Record<string,number>|undefined
 
   const MockNova = {
     home:           vi.fn().mockResolvedValue(undefined),
@@ -26,7 +26,7 @@ const Hoisted = vi.hoisted(() => {
     get State () {
       return { s1:90, s2:90, s3:110, s4:90, s5:95 }
     },
-    set State (Update:Record<string, number>) {
+    set State (Update:Record<string,number>) {
       LastStateUpdate = Update
     },
   }

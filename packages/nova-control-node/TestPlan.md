@@ -70,8 +70,10 @@ packets through the (mocked) Node.js serial port.
 - **K-01** — `BaudRate` equals `9600`
 - **K-02..06** — `HomePosition` has `s1=90`, `s2=90`, `s3=110`, `s4=90`, `s5=95`
 - **K-07** — `Object.isFrozen(HomePosition)` is `true`
-- **K-08..12** — `SafeRange` has correct ranges per servo
+- **K-08..12** — `SafeRange` has correct ranges per servo: s1 `[45, 135]`, s2 `[10, 170]`, s3 `[40, 150]`, s4 `[30, 180]`, s5 `[20, 150]`
 - **K-13** — `Object.isFrozen(SafeRange)` is `true`
+- **K-14..18** — `ServoSpeed` has the correct °/ms rate per servo: (max − min) / 1000
+- **K-19** — `Object.isFrozen(ServoSpeed)` is `true`
 
 ---
 

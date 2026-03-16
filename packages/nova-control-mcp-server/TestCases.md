@@ -53,3 +53,15 @@
 | ER-02 | `wait` with negative value returns error | `callTool('wait', { ms: -1 })` | `isError` is true; text contains `-1` |
 | ER-03 | `wait` with non-numeric string returns error | `callTool('wait', { ms: 'abc' })` | `isError` is true; text contains `abc` |
 | ER-04 | `openNova` rejection propagates as error | `openNova` mock rejects with `'port not found'`, `callTool('home', {})` | `isError` is true; text contains `port not found` |
+
+## Part IV — HT: HTTP transport (manual smoke-test only)
+
+The HTTP transport wraps the already-tested `createServer()` with a standard Node.js HTTP server and `StreamableHTTPServerTransport` (stateless mode). It is not covered by automated tests because it requires a live TCP socket. The correctness of the MCP layer is fully verified by Parts I–III.
+
+| ID | Description | Procedure | Expected result |
+|---|---|---|---|
+| HT-01 | server starts on the given port | `nova-control-mcp-server --port <dev> --transport http --listen 3000` | process stays alive; stderr prints `HTTP transport listening on port 3000` |
+| HT-02 | `POST /mcp` accepts a valid request | send MCP initialise request to `http://localhost:3000/mcp` | HTTP 200; valid MCP response body |
+| HT-03 | tool call over HTTP succeeds | send `callTool('home')` over HTTP | HTTP 200; `isError` absent or false in response |
+| HT-04 | unknown path returns 404 | `GET http://localhost:3000/unknown` | HTTP 404 |
+| HT-05 | SIGINT causes clean shutdown | send SIGINT to the process | serial connection closed; process exits 0 |

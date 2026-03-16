@@ -16,7 +16,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 const Hoisted = vi.hoisted(() => {
   const MockWriter = {
-    write:       vi.fn((_data: Uint8Array) => Promise.resolve()),
+    write:       vi.fn((_data:Uint8Array) => Promise.resolve()),
     releaseLock: vi.fn(),
   }
 
@@ -24,7 +24,7 @@ const Hoisted = vi.hoisted(() => {
     // must satisfy `instanceof EventTarget` — created per-test via Object.assign(new EventTarget, ...)
     open:     vi.fn(() => Promise.resolve()),
     close:    vi.fn(() => Promise.resolve()),
-    writable: { getWriter: vi.fn(() => MockWriter) },
+    writable: { getWriter:vi.fn(() => MockWriter) },
   }
 
   const MockSerial = {
@@ -48,7 +48,7 @@ import { openNova, HomePosition, type NovaController } from '../nova-control-bro
 
 function resetMocks ():void {
   Hoisted.MockWriter.write.mockReset().mockImplementation(
-    (_data: Uint8Array) => Promise.resolve()
+    (_data:Uint8Array) => Promise.resolve()
   )
   Hoisted.MockWriter.releaseLock.mockReset()
   Hoisted.MockPort.open.mockReset().mockImplementation(() => Promise.resolve())
@@ -69,7 +69,7 @@ function stubSerial ():void {
 
 /**** writtenBytes — returns the Uint8Array from the nth Writer.write call ****/
 
-function writtenBytes (CallIndex: number = 0):Uint8Array {
+function writtenBytes (CallIndex:number = 0):Uint8Array {
   return Hoisted.MockWriter.write.mock.calls[CallIndex][0] as Uint8Array
 }
 
@@ -119,7 +119,7 @@ describe('transport (T)', () => {
     const Port = Object.assign(new EventTarget(), {
       open:     vi.fn(() => Promise.resolve()),
       close:    vi.fn(() => Promise.resolve()),
-      writable: { getWriter: () => Hoisted.MockWriter },
+      writable: { getWriter:() => Hoisted.MockWriter },
     })
 
     const P = openNova(Port as unknown as Parameters<typeof openNova>[0])

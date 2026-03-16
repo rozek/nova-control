@@ -67,6 +67,49 @@ Add the same block under `mcpServers` in `~/.cursor/mcp.json`.
 |---|---|---|---|
 | `--port <path>` | `-p` | *(required)* | serial port path (e.g. `/dev/ttyACM0`, `COM3`) |
 | `--baud <rate>` | `-b` | `9600` | baud rate |
+| `--transport <mode>` | `-t` | `stdio` | transport: `stdio` or `http` |
+| `--listen <port>` | `-l` | `3000` | HTTP listen port (only used when `--transport http`) |
+
+## HTTP transport (Docker / remote)
+
+Use `--transport http` to expose the MCP server over HTTP instead of stdio. This is the recommended mode when the server runs in a Docker container or on a remote machine.
+
+The server listens on the given port and accepts MCP requests at `POST /mcp`.
+
+```bash
+nova-control-mcp-server --port /dev/ttyACM0 --transport http --listen 3000
+```
+
+### Docker example
+
+```dockerfile
+FROM node:22-slim
+RUN npm install -g nova-control-mcp-server
+EXPOSE 3000
+CMD ["nova-control-mcp-server", "--port", "/dev/ttyACM0", \
+     "--transport", "http", "--listen", "3000"]
+```
+
+Run the container with the serial device passed through:
+
+```bash
+docker run --device /dev/ttyACM0 -p 3000:3000 nova-mcp
+```
+
+### Connecting an MCP client to the HTTP transport
+
+Point your MCP client at `http://<host>:3000/mcp`. For Claude Desktop with a remote server, use the `url` transport type:
+
+```json
+{
+  "mcpServers": {
+    "nova-control": {
+      "type": "http",
+      "url": "http://localhost:3000/mcp"
+    }
+  }
+}
+```
 
 ## Tools
 

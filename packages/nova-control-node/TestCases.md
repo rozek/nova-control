@@ -15,12 +15,18 @@ Test cases for the `nova-control-node` package, grouped by test file.
 | K-05 | `HomePosition.s4` | `90` |
 | K-06 | `HomePosition.s5` | `95` |
 | K-07 | `Object.isFrozen(HomePosition)` | `true` |
-| K-08 | `SafeRange.s1` | `[80, 150]` |
-| K-09 | `SafeRange.s2` | `[0, 180]` |
-| K-10 | `SafeRange.s3` | `[76, 180]` |
-| K-11 | `SafeRange.s4` | `[0, 180]` |
-| K-12 | `SafeRange.s5` | `[10, 141]` |
+| K-08 | `SafeRange.s1` | `[45, 135]` |
+| K-09 | `SafeRange.s2` | `[10, 170]` |
+| K-10 | `SafeRange.s3` | `[40, 150]` |
+| K-11 | `SafeRange.s4` | `[30, 180]` |
+| K-12 | `SafeRange.s5` | `[20, 150]` |
 | K-13 | `Object.isFrozen(SafeRange)` | `true` |
+| K-14 | `ServoSpeed.s1` = (135−45)/1000 | ≈ `0.09` |
+| K-15 | `ServoSpeed.s2` = (170−10)/1000 | ≈ `0.16` |
+| K-16 | `ServoSpeed.s3` = (150−40)/1000 | ≈ `0.11` |
+| K-17 | `ServoSpeed.s4` = (180−30)/1000 | ≈ `0.15` |
+| K-18 | `ServoSpeed.s5` = (150−20)/1000 | ≈ `0.13` |
+| K-19 | `Object.isFrozen(ServoSpeed)` | `true` |
 
 ---
 
@@ -35,13 +41,13 @@ Test cases for the `nova-control-node` package, grouped by test file.
 | P-05 | byte 2 carries s2: `buildDirectPacket({ ...HomePosition, s2:60 })[2]` | `60` |
 | P-06 | byte 3 carries s1: `buildDirectPacket({ ...HomePosition, s1:120 })[3]` | `120` |
 | P-07 | byte 4 carries s5: `buildDirectPacket({ ...HomePosition, s5:110 })[4]` | `110` |
-| P-08 | s1 = 0 clamped to minimum 80 | byte 3 = `80` |
-| P-09 | s3 = 0 clamped to minimum 76 | byte 1 = `76` |
-| P-10 | s5 = 0 clamped to minimum 10 | byte 4 = `10` |
-| P-11 | s1 = 255 clamped to maximum 150 | byte 3 = `150` |
-| P-12 | s5 = 255 clamped to maximum 141 | byte 4 = `141` |
-| P-13 | s1 = 80 (lower boundary) passes through | byte 3 = `80` |
-| P-14 | s1 = 150 (upper boundary) passes through | byte 3 = `150` |
+| P-08 | s1 = 0 clamped to minimum 45 | byte 3 = `45` |
+| P-09 | s3 = 0 clamped to minimum 40 | byte 1 = `40` |
+| P-10 | s5 = 0 clamped to minimum 20 | byte 4 = `20` |
+| P-11 | s1 = 255 clamped to maximum 135 | byte 3 = `135` |
+| P-12 | s5 = 255 clamped to maximum 150 | byte 4 = `150` |
+| P-13 | s1 = 45 (lower boundary) passes through | byte 3 = `45` |
+| P-14 | s1 = 135 (upper boundary) passes through | byte 3 = `135` |
 | P-15 | s1 = 90.6 rounds to 91 | byte 3 = `91` |
 | P-16 | s1 = 90.4 rounds to 90 | byte 3 = `90` |
 

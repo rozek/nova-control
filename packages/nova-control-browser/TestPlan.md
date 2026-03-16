@@ -69,8 +69,10 @@ packets through the (mocked) Web Serial port.
 - **K-01** — `BaudRate` equals `9600`
 - **K-02..06** — `HomePosition` has `s1=90`, `s2=90`, `s3=110`, `s4=90`, `s5=95`
 - **K-07** — `Object.isFrozen(HomePosition)` is `true`
-- **K-08..12** — `SafeRange` has correct ranges per servo
+- **K-08..12** — `SafeRange` has correct ranges per servo: s1 `[45, 135]`, s2 `[10, 170]`, s3 `[40, 150]`, s4 `[30, 180]`, s5 `[20, 150]`
 - **K-13** — `Object.isFrozen(SafeRange)` is `true`
+- **K-14..18** — `ServoSpeed` has the correct °/ms rate per servo: (max − min) / 1000
+- **K-19** — `Object.isFrozen(ServoSpeed)` is `true`
 
 ---
 
@@ -94,12 +96,11 @@ packets through the (mocked) Web Serial port.
 
 ## Part III — Transport (T)
 
-- **T-01** — `openNova()` rejects when `navigator.serial` is absent
-- **T-02** — error message contains `'Web Serial API'`
-- **T-03** — `openNova()` without arguments calls `requestPort` once
-- **T-04** — `openNova(existingPort)` with an EventTarget does not call `requestPort`
-- **T-05** — port is opened with `baudRate: 9600`
-- **T-06** — reset delay: promise pending after 1999 ms, resolves after 2000 ms
+- **T-01** — `openNova()` rejects when `navigator.serial` is absent, with an error message containing `'Web Serial API'`
+- **T-02** — `openNova()` without arguments calls `requestPort` once
+- **T-03** — `openNova(existingPort)` with an EventTarget does not call `requestPort`
+- **T-04** — port is opened with `baudRate: 9600`
+- **T-05** — reset delay: promise pending after 1999 ms, resolves after 2000 ms
 
 ---
 

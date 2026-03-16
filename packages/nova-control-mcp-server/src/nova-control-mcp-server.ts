@@ -5,14 +5,16 @@
 *******************************************************************************/
 
 // MCP server for controlling a NOVA robot arm — exposes the same tools as
-// nova-control-command over the Model Context Protocol (stdio transport)
+// nova-control-command over the Model Context Protocol (stdio or HTTP transport)
 
-import { fileURLToPath } from 'node:url'
-import { realpathSync }  from 'node:fs'
-import { parseArgs }     from 'node:util'
+import { fileURLToPath }  from 'node:url'
+import { realpathSync }   from 'node:fs'
+import { createServer as createHttpServer } from 'node:http'
+import { parseArgs }      from 'node:util'
 
-import { Server }               from '@modelcontextprotocol/sdk/server/index.js'
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { Server }                        from '@modelcontextprotocol/sdk/server/index.js'
+import { StdioServerTransport }          from '@modelcontextprotocol/sdk/server/stdio.js'
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -25,15 +27,20 @@ import type { NovaController, ServoUpdate } from 'nova-control-node'
 //                           CLI argument parsing                             //
 //----------------------------------------------------------------------------//
 
-/**** parseCLIArgs — extracts --port and --baud from process.argv ****/
+/**** parseCLIArgs — extracts --port, --baud, --transport, and --listen from process.argv ****/
 
-function parseCLIArgs ():{Port:string, BaudRate:number} {
+function parseCLIArgs ():{
+  Port:string, BaudRate:number,
+  Transport:'stdio'|'http', ListenPort:number
+} {
   try {
     const { values } = parseArgs({
       args:             process.argv.slice(2),
       options: {
-        port: { type:'string', short:'p' },
-        baud: { type:'string', short:'b' },
+        port:      { type:'string', short:'p' },
+        baud:      { type:'string', short:'b' },
+        transport: { type:'string', short:'t' },
+        listen:    { type:'string', short:'l' },
       },
       strict:           true,
       allowPositionals: false,
@@ -42,9 +49,19 @@ function parseCLIArgs ():{Port:string, BaudRate:number} {
       process.stderr.write('nova-control-mcp: --port is required\n')
       process.exit(1)
     }
+    const TransportMode = (values.transport ?? 'stdio') as string
+    if ((TransportMode !== 'stdio') && (TransportMode !== 'http')) {
+      process.stderr.write(
+        `nova-control-mcp: --transport must be 'stdio' or 'http', ` +
+        `got '${TransportMode}'\n`
+      )
+      process.exit(1)
+    }
     return {
-      Port:     values.port as string,
-      BaudRate: Number(values.baud ?? '9600'),
+      Port:       values.port as string,
+      BaudRate:   Number(values.baud ?? '9600'),
+      Transport:  TransportMode as 'stdio'|'http',
+      ListenPort: Number(values.listen ?? '3000'),
     }
   } catch (Signal:unknown) {
     process.stderr.write(
@@ -303,7 +320,7 @@ async function handleGetState ():Promise<string> {
 
 export function createServer ():Server {
   const McpServer = new Server(
-    { name:'nova-control-mcp-server', version:'0.0.1' },
+    { name:'nova-control-mcp-server', version:'0.0.4' },
     { capabilities:{ tools:{} } }
   )
 
@@ -349,14 +366,9 @@ export function createServer ():Server {
 //                                   main                                     //
 //----------------------------------------------------------------------------//
 
-/**** main — MCP server entry point ****/
+/**** startStdioTransport — connects the MCP server over stdin/stdout ****/
 
-async function main ():Promise<void> {
-  const { Port, BaudRate } = parseCLIArgs()
-  _Port     = Port
-  _BaudRate = BaudRate
-
-  const McpServer = createServer()
+async function startStdioTransport (McpServer:Server):Promise<void> {
   const Transport = new StdioServerTransport()
   await McpServer.connect(Transport)
 
@@ -365,6 +377,62 @@ async function main ():Promise<void> {
       destroyController()
       process.exit(0)
     })
+  }
+}
+
+/**** startHttpTransport — connects the MCP server over Streamable HTTP ****/
+
+async function startHttpTransport (
+  McpServer:Server, ListenPort:number
+):Promise<void> {
+  const Transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: undefined,  // stateless — one server, many requests
+  })
+  await McpServer.connect(Transport)
+
+  const HttpServer = createHttpServer(async (Req, Res) => {
+    if (Req.url === '/mcp') {
+      await Transport.handleRequest(Req, Res)
+    } else {
+      Res.writeHead(404, { 'Content-Type':'text/plain' })
+      Res.end('not found')
+    }
+  })
+
+  await new Promise<void>((resolve, reject) => {
+    HttpServer.listen(ListenPort, () => {
+      process.stderr.write(
+        `nova-control-mcp: HTTP transport listening on port ${ListenPort} — ` +
+        `POST /mcp\n`
+      )
+      resolve()
+    })
+    HttpServer.once('error', reject)
+  })
+
+  for (const Sig of [ 'SIGINT', 'SIGTERM' ]) {
+    process.on(Sig, async () => {
+      await Transport.close()
+      HttpServer.close()
+      destroyController()
+      process.exit(0)
+    })
+  }
+}
+
+/**** main — MCP server entry point ****/
+
+async function main ():Promise<void> {
+  const { Port, BaudRate, Transport, ListenPort } = parseCLIArgs()
+  _Port     = Port
+  _BaudRate = BaudRate
+
+  const McpServer = createServer()
+
+  if (Transport === 'http') {
+    await startHttpTransport(McpServer, ListenPort)
+  } else {
+    await startStdioTransport(McpServer)
   }
 }
 

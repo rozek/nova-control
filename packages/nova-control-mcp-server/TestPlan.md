@@ -48,6 +48,18 @@ Verifies that tools return `isError: true` with a descriptive message for invali
 | ER-unknown | call to an unknown tool name |
 | ER-open | `openNova` rejection |
 
+### Part IV — HT: HTTP transport (infrastructure — not automated)
+
+The HTTP transport (`--transport http`) wraps the already end-to-end-tested `createServer()` with a standard Node.js HTTP server and the MCP SDK's `StreamableHTTPServerTransport`. It is not covered by automated unit tests because it requires a live TCP socket; the correctness of `createServer()` is already verified by Parts I–III.
+
+Manual smoke-test procedure (not part of the automated suite):
+
+1. Start the server with `--transport http --listen 3000`.
+2. Send `POST /mcp` with a valid MCP initialise request — verify a 200 response.
+3. Call a tool (e.g. `home`) over HTTP — verify a success response.
+4. Send `GET /unknown` — verify a 404 response.
+5. Send SIGINT — verify the process exits cleanly.
+
 ## Pass criteria
 
-All tests must report **passed** with zero errors. The test suite must complete without touching `/dev/tty*` or any real serial device.
+All automated tests must report **passed** with zero errors. The test suite must complete without touching `/dev/tty*` or any real serial device.
