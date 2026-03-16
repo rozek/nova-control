@@ -12,12 +12,20 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server for co
 
 ## Installation
 
+**No install — run directly with `npx`** (recommended for MCP clients):
+
 ```bash
-npm install
-npm run build
+npx nova-control-mcp-server --port /dev/ttyACM0
 ```
 
-The compiled binary lands at `dist/nova-control-mcp-server.js`.
+`npx` downloads the package on first use and caches it locally. This is the simplest way to use the server and requires no global installation.
+
+**Global install:**
+
+```bash
+npm install -g nova-control-mcp-server
+nova-control-mcp-server --port /dev/ttyACM0
+```
 
 ## Configuration
 
@@ -29,12 +37,21 @@ Add the server to `~/Library/Application Support/Claude/claude_desktop_config.js
 {
   "mcpServers": {
     "nova-control": {
-      "command": "node",
-      "args": [
-        "/absolute/path/to/nova-control-mcp-server/dist/nova-control-mcp-server.js",
-        "--port", "/dev/ttyACM0",
-        "--baud", "115200"
-      ]
+      "command": "npx",
+      "args": ["nova-control-mcp-server", "--port", "/dev/ttyACM0"]
+    }
+  }
+}
+```
+
+With a custom baud rate:
+
+```json
+{
+  "mcpServers": {
+    "nova-control": {
+      "command": "npx",
+      "args": ["nova-control-mcp-server", "--port", "/dev/ttyACM0", "--baud", "115200"]
     }
   }
 }

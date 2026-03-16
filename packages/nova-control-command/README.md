@@ -16,11 +16,27 @@ CLI for controlling a **NOVA DIY Artificial Intelligence Robot** by Creoqode. Pr
 
 ## Installation
 
+**Global install** — installs the `nova-control` binary on the `PATH`:
+
+```bash
+npm install -g nova-control-command
+nova-control --port /dev/ttyACM0 home
+```
+
+**No install — run directly with `npx`:**
+
+```bash
+npx nova-control-command --port /dev/ttyACM0 home
+npx nova-control-command --port /dev/ttyACM0 shell
+```
+
+`npx` downloads the package on first use and caches it locally. All examples in this document use the `nova-control` binary name (global install); substitute `npx nova-control-command` when running via npx.
+
+**Local install** — adds the binary to `node_modules/.bin/`:
+
 ```bash
 npm install nova-control-command
 ```
-
-After installation the `nova-control` binary is available in the project's `node_modules/.bin/` directory and — when installed globally — directly on the `PATH`.
 
 ---
 

@@ -129,7 +129,9 @@ The API is otherwise identical to `nova-control-browser`.
 
 CLI tool for sending commands to Nova from a terminal.
 
-```
+Install globally and use the `nova-control` binary:
+
+```bash
 npm install -g nova-control-command
 
 nova-control --port /dev/ttyACM0 home
@@ -137,6 +139,13 @@ nova-control --port /dev/ttyACM0 shift-to 120
 nova-control --port /dev/ttyACM0 move --shift-to 120 --rotate-to 45
 nova-control --port /dev/ttyACM0 shell        # interactive REPL
 nova-control --port /dev/ttyACM0 --script run.nova
+```
+
+Or run without installing via `npx`:
+
+```bash
+npx nova-control-command --port /dev/ttyACM0 home
+npx nova-control-command --port /dev/ttyACM0 shell
 ```
 
 ### Global options
