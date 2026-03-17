@@ -485,7 +485,7 @@ async function handleRunScript (Args:ToolArgs):Promise<string> {
 
 export function createServer ():Server {
   const McpServer = new Server(
-    { name:'nova-control-mcp-server', version:'0.0.6' },
+    { name:'nova-control-mcp-server', version:'0.0.7' },
     { capabilities:{ tools:{} } }
   )
 

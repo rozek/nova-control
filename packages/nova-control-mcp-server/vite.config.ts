@@ -11,7 +11,9 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: false,
     rollupOptions: {
-      external: /^(node:|[^./])/,
+      // bundle nova-control-node so the MCP server is self-contained and
+      // independent of whatever version of nova-control-node is installed from npm
+      external: (id) => id !== 'nova-control-node' && /^(node:|[^./])/.test(id),
       output: {
         banner: '#!/usr/bin/env node',
       },
