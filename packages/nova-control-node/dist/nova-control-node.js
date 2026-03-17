@@ -59,22 +59,29 @@ async function s(t, n) {
 		}
 	};
 }
-async function c(e, r = t, a) {
-	let c = a?.StepIntervalMs ?? 20, l = await s(e, r), u = { ...n }, d, f = Promise.resolve();
-	function p(e) {
-		d = {
-			...d ?? u,
+function c(e, t) {
+	let n = Math.min(.499, Math.max(0, t)), r = 1 / (1 - n);
+	if (e <= n) return r * e * e / (2 * n);
+	if (e <= 1 - n) return r * (e - n / 2);
+	let i = 1 - e;
+	return 1 - r * i * i / (2 * n);
+}
+async function l(e, r = t, a) {
+	let l = a?.StepIntervalMs ?? 20, u = a?.RampRatio ?? .25, d = await s(e, r), f = { ...n }, p, m = Promise.resolve();
+	function h(e) {
+		p = {
+			...p ?? f,
 			...e
 		};
 	}
-	async function m() {
-		let e = f;
-		f = (async () => {
+	async function g() {
+		let e = m;
+		m = (async () => {
 			try {
 				await e;
 			} catch {}
-			for (; d != null;) {
-				let e = d, t = !0, n = { ...u };
+			for (; p != null;) {
+				let e = p, t = !0, n = { ...f };
 				for (let r of [
 					"s1",
 					"s2",
@@ -82,48 +89,144 @@ async function c(e, r = t, a) {
 					"s4",
 					"s5"
 				]) {
-					let a = e[r] - u[r], o = c > 0 ? i[r] * c : Infinity;
-					Math.abs(a) > o ? (n[r] = u[r] + Math.sign(a) * o, t = !1) : n[r] = e[r];
+					let a = e[r] - f[r], o = l > 0 ? i[r] * l : Infinity;
+					Math.abs(a) > o ? (n[r] = f[r] + Math.sign(a) * o, t = !1) : n[r] = e[r];
 				}
-				t && (d = void 0), u = { ...n }, await l.write(o(n)), t || await new Promise((e) => setTimeout(e, c));
+				t && (p = void 0), f = { ...n }, await d.write(o(n)), t || await new Promise((e) => setTimeout(e, l));
 			}
-		})(), await f;
+		})(), await m;
+	}
+	async function _(e, t) {
+		let n = m;
+		m = (async () => {
+			try {
+				await n;
+			} catch {}
+			let r = { ...f }, i = l > 0 ? Math.max(1, Math.round(t / l)) : 1;
+			p = void 0;
+			for (let t = 1; t <= i; t++) {
+				let n = c(t / i, u), a = { ...f };
+				for (let t of Object.keys(e)) a[t] = Math.round(r[t] + (e[t] - r[t]) * n);
+				f = a, await d.write(o(a)), t < i && await new Promise((e) => setTimeout(e, l));
+			}
+		})(), await m;
 	}
 	return {
-		async home() {
-			p({ ...n }), await m();
+		async home(e) {
+			e != null && e > 0 ? await _({ ...n }, e) : (h({ ...n }), await g());
 		},
-		async shiftHeadTo(e) {
-			p({ s1: e }), await m();
+		async shiftHeadTo(e, t) {
+			t != null && t > 0 ? await _({ s1: e }, t) : (h({ s1: e }), await g());
 		},
-		async rollHeadTo(e) {
-			p({ s2: e }), await m();
+		async rollHeadTo(e, t) {
+			t != null && t > 0 ? await _({ s2: e }, t) : (h({ s2: e }), await g());
 		},
-		async pitchHeadTo(e) {
-			p({ s3: e }), await m();
+		async pitchHeadTo(e, t) {
+			t != null && t > 0 ? await _({ s3: e }, t) : (h({ s3: e }), await g());
 		},
-		async liftHeadTo(e) {
-			p({ s5: e }), await m();
+		async liftHeadTo(e, t) {
+			t != null && t > 0 ? await _({ s5: e }, t) : (h({ s5: e }), await g());
 		},
-		async rotateBodyTo(e) {
-			p({ s4: e }), await m();
+		async rotateBodyTo(e, t) {
+			t != null && t > 0 ? await _({ s4: e }, t) : (h({ s4: e }), await g());
+		},
+		async moveTo(e, t) {
+			t != null && t > 0 ? await _(e, t) : (h(e), await g());
 		},
 		get State() {
-			return structuredClone(d ?? u);
+			return structuredClone(p ?? f);
 		},
 		set State(e) {
-			d = {
-				...u,
+			p = {
+				...f,
 				...e
 			};
 		},
 		async sendServoState() {
-			await m();
+			await g();
 		},
 		destroy() {
-			l.destroy();
+			d.destroy();
 		}
 	};
 }
+async function u(e, t) {
+	let n = t.split("\n");
+	for (let t = 0; t < n.length; t++) {
+		let r = n[t].trim(), i = t + 1;
+		if (r === "" || r.startsWith("#")) continue;
+		let a = r.split(/\s+/), o = a[0].toLowerCase();
+		switch (!0) {
+			case o === "home":
+				await e.home();
+				break;
+			case o === "shift-to": {
+				let t = Number(a[1]);
+				if (isNaN(t)) throw Error(`line ${i}: shift-to requires a numeric angle, got '${a[1]}'`);
+				await e.shiftHeadTo(t);
+				break;
+			}
+			case o === "roll-to": {
+				let t = Number(a[1]);
+				if (isNaN(t)) throw Error(`line ${i}: roll-to requires a numeric angle, got '${a[1]}'`);
+				await e.rollHeadTo(t);
+				break;
+			}
+			case o === "pitch-to": {
+				let t = Number(a[1]);
+				if (isNaN(t)) throw Error(`line ${i}: pitch-to requires a numeric angle, got '${a[1]}'`);
+				await e.pitchHeadTo(t);
+				break;
+			}
+			case o === "rotate-to": {
+				let t = Number(a[1]);
+				if (isNaN(t)) throw Error(`line ${i}: rotate-to requires a numeric angle, got '${a[1]}'`);
+				await e.rotateBodyTo(t);
+				break;
+			}
+			case o === "lift-to": {
+				let t = Number(a[1]);
+				if (isNaN(t)) throw Error(`line ${i}: lift-to requires a numeric angle, got '${a[1]}'`);
+				await e.liftHeadTo(t);
+				break;
+			}
+			case o === "move": {
+				let t = {};
+				for (let e = 1; e < a.length; e += 2) {
+					let n = a[e].toLowerCase(), r = Number(a[e + 1]);
+					if (isNaN(r)) throw Error(`line ${i}: '${n}' requires a numeric angle, got '${a[e + 1]}'`);
+					switch (n) {
+						case "shift-to":
+							t.s1 = r;
+							break;
+						case "roll-to":
+							t.s2 = r;
+							break;
+						case "pitch-to":
+							t.s3 = r;
+							break;
+						case "rotate-to":
+							t.s4 = r;
+							break;
+						case "lift-to":
+							t.s5 = r;
+							break;
+						default: throw Error(`line ${i}: unknown move argument '${n}'`);
+					}
+				}
+				if (Object.keys(t).length === 0) throw Error(`line ${i}: move requires at least one servo argument`);
+				e.State = t, await e.sendServoState();
+				break;
+			}
+			case o === "wait": {
+				let e = Number(a[1]);
+				if (isNaN(e) || e < 0) throw Error(`line ${i}: wait requires a non-negative number in ms, got '${a[1]}'`);
+				await new Promise((t) => setTimeout(t, e));
+				break;
+			}
+			default: throw Error(`line ${i}: unknown command '${o}'`);
+		}
+	}
+}
 //#endregion
-export { t as BaudRate, n as HomePosition, r as SafeRange, i as ServoSpeed, o as buildDirectPacket, c as openNova };
+export { t as BaudRate, n as HomePosition, r as SafeRange, i as ServoSpeed, o as buildDirectPacket, l as openNova, u as runScript };

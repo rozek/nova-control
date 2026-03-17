@@ -332,3 +332,136 @@ describe('controller (C)', () => {
   })
 
 })
+
+//----------------------------------------------------------------------------//
+//                       timed movement (TM)                                 //
+//----------------------------------------------------------------------------//
+
+describe('timed movement (TM)', () => {
+
+  let Nova: NovaController
+
+  afterEach(() => {
+    Nova.destroy()
+  })
+
+/**** TM-01: moveTo without withinMS sends exactly one packet ****/
+
+  it('TM-01: moveTo without withinMS sends exactly one packet', async () => {
+    resetPortMocks()
+    vi.useFakeTimers()
+    const P = openNova('/dev/test', BaudRate, { StepIntervalMs:0 })
+    await vi.advanceTimersByTimeAsync(2000)
+    Nova = await P
+    vi.useRealTimers()
+    Hoisted.Port.write.mockClear()
+
+    await Nova.moveTo({ s1:120 })
+    expect(Hoisted.Port.write).toHaveBeenCalledOnce()
+    expect(writtenBytes()[3]).toBe(120)
+  })
+
+/**** TM-02: moveTo with withinMS sends multiple packets ****/
+
+  it('TM-02: moveTo with withinMS sends multiple packets', async () => {
+    resetPortMocks()
+    vi.useFakeTimers()
+    const P = openNova('/dev/test', BaudRate, { StepIntervalMs:1 })
+    await vi.advanceTimersByTimeAsync(2000)
+    Nova = await P
+    vi.useRealTimers()
+    Hoisted.Port.write.mockClear()
+
+    await Nova.moveTo({ s1:120 }, 5)
+    expect(Hoisted.Port.write.mock.calls.length).toBeGreaterThan(1)
+  })
+
+/**** TM-03: shiftHeadTo with withinMS sends multiple packets ****/
+
+  it('TM-03: shiftHeadTo with withinMS sends multiple packets', async () => {
+    resetPortMocks()
+    vi.useFakeTimers()
+    const P = openNova('/dev/test', BaudRate, { StepIntervalMs:1 })
+    await vi.advanceTimersByTimeAsync(2000)
+    Nova = await P
+    vi.useRealTimers()
+    Hoisted.Port.write.mockClear()
+
+    await Nova.shiftHeadTo(120, 5)
+    expect(Hoisted.Port.write.mock.calls.length).toBeGreaterThan(1)
+  })
+
+/**** TM-04: home with withinMS sends multiple packets ****/
+
+  it('TM-04: home with withinMS sends multiple packets', async () => {
+    resetPortMocks()
+    vi.useFakeTimers()
+    const P = openNova('/dev/test', BaudRate, { StepIntervalMs:1 })
+    await vi.advanceTimersByTimeAsync(2000)
+    Nova = await P
+    vi.useRealTimers()
+    Hoisted.Port.write.mockClear()
+
+    await Nova.home(200)
+    expect(Hoisted.Port.write.mock.calls.length).toBeGreaterThan(1)
+  })
+
+/**** TM-05: first timed packet is between start and target (ramp-up) ****/
+
+  it('TM-05: first timed packet is between start and target (ramp-up effect)', async () => {
+    resetPortMocks()
+    vi.useFakeTimers()
+    const P = openNova('/dev/test', BaudRate, { StepIntervalMs:1 })
+    await vi.advanceTimersByTimeAsync(2000)
+    Nova = await P
+    vi.useRealTimers()
+    Hoisted.Port.write.mockClear()
+
+    await Nova.moveTo({ s1:120 }, 10)
+    const FirstPacket = writtenBytes(0)
+    const s1Value = FirstPacket[3]
+    // start is 90, target is 120; first step should be between them
+    expect(s1Value).toBeGreaterThan(90)
+    expect(s1Value).toBeLessThan(120)
+  })
+
+/**** TM-06: last timed packet reaches exact target ****/
+
+  it('TM-06: last timed packet reaches exact target angle', async () => {
+    resetPortMocks()
+    vi.useFakeTimers()
+    const P = openNova('/dev/test', BaudRate, { StepIntervalMs:1 })
+    await vi.advanceTimersByTimeAsync(2000)
+    Nova = await P
+    vi.useRealTimers()
+    Hoisted.Port.write.mockClear()
+
+    await Nova.moveTo({ s1:120 }, 5)
+    const CallCount = Hoisted.Port.write.mock.calls.length
+    const LastPacket = writtenBytes(CallCount - 1)
+    expect(LastPacket[3]).toBe(120)
+  })
+
+/**** TM-07: trapezoidEasing symmetry — midpoint near 50% of travel ****/
+
+  it('TM-07: symmetric trapezoid: midpoint packet near 50% of travel', async () => {
+    resetPortMocks()
+    vi.useFakeTimers()
+    const P = openNova('/dev/test', BaudRate, { StepIntervalMs:1 })
+    await vi.advanceTimersByTimeAsync(2000)
+    Nova = await P
+    vi.useRealTimers()
+    Hoisted.Port.write.mockClear()
+
+    // move from 90 to 190 (100° travel) over 100 ms
+    await Nova.moveTo({ s1:190 }, 100)
+    const CallCount = Hoisted.Port.write.mock.calls.length
+    const MidIndex = Math.floor(CallCount / 2)
+    const MidPacket = writtenBytes(MidIndex)
+    const MidValue = MidPacket[3]
+    // expecting roughly 140° (90 + 50), allowing ±5° tolerance
+    expect(MidValue).toBeGreaterThanOrEqual(135)
+    expect(MidValue).toBeLessThanOrEqual(145)
+  })
+
+})

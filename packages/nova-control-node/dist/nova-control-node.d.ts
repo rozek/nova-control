@@ -8,12 +8,13 @@ export declare const HomePosition: Readonly<ServoState>;
 
 /**** NovaController ****/
 export declare interface NovaController {
-    home(): Promise<void>;
-    shiftHeadTo(Degrees: number): Promise<void>;
-    rollHeadTo(Degrees: number): Promise<void>;
-    pitchHeadTo(Degrees: number): Promise<void>;
-    liftHeadTo(Degrees: number): Promise<void>;
-    rotateBodyTo(Degrees: number): Promise<void>;
+    home(withinMS?: number): Promise<void>;
+    shiftHeadTo(Angle: number, withinMS?: number): Promise<void>;
+    rollHeadTo(Angle: number, withinMS?: number): Promise<void>;
+    pitchHeadTo(Angle: number, withinMS?: number): Promise<void>;
+    liftHeadTo(Angle: number, withinMS?: number): Promise<void>;
+    rotateBodyTo(Angle: number, withinMS?: number): Promise<void>;
+    moveTo(Target: ServoUpdate, withinMS?: number): Promise<void>;
     get State(): ServoState;
     set State(Update: ServoUpdate);
     sendServoState(): Promise<void>;
@@ -23,10 +24,14 @@ export declare interface NovaController {
 /**** NovaOptions ****/
 export declare interface NovaOptions {
     StepIntervalMs?: number;
+    RampRatio?: number;
 }
 
 /**** openNova — factory ****/
 export declare function openNova(PortPath: string, Rate?: number, Options?: NovaOptions): Promise<NovaController>;
+
+/**** runScript — execute a multi-line script of movement commands ****/
+export declare function runScript(Nova: NovaController, Script: string): Promise<void>;
 
 /**** SafeRange ****/
 export declare const SafeRange: Readonly<Record<ServoKey, [number, number]>>;

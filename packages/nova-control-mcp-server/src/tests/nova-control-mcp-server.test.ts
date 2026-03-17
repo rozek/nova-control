@@ -23,6 +23,7 @@ const Hoisted = vi.hoisted(() => {
 
   const MockNova = {
     home:           vi.fn().mockResolvedValue(undefined),
+    moveTo:         vi.fn().mockResolvedValue(undefined),
     sendServoState: vi.fn().mockResolvedValue(undefined),
     destroy:        vi.fn(),
 
@@ -34,18 +35,21 @@ const Hoisted = vi.hoisted(() => {
     },
   }
 
-  const openNova = vi.fn().mockResolvedValue(MockNova)
+  const openNova   = vi.fn().mockResolvedValue(MockNova)
+  const runScript  = vi.fn().mockResolvedValue(undefined)
 
   return {
     MockNova,
     openNova,
+    runScript,
     get LastStateUpdate () { return LastStateUpdate },
     clearLastStateUpdate () { LastStateUpdate = undefined },
   }
 })
 
 vi.mock('nova-control-node', () => ({
-  openNova: Hoisted.openNova,
+  openNova:  Hoisted.openNova,
+  runScript: Hoisted.runScript,
 }))
 
 //----------------------------------------------------------------------------//
@@ -136,16 +140,16 @@ describe('server handshake (SH)', () => {
     await disconnect()
   })
 
-/**** SH-02: tools/list returns all nine expected tool names ****/
+/**** SH-02: tools/list returns all eleven expected tool names ****/
 
-  it('SH-02: tools/list returns all nine expected tool names', async () => {
+  it('SH-02: tools/list returns all eleven expected tool names', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const { tools } = await McpClient.listTools()
       const Names = tools.map((T) => T.name).sort()
       expect(Names).toEqual([
-        'get_state', 'home', 'lift_to', 'move', 'pitch_to',
-        'roll_to', 'rotate_to', 'shift_to', 'wait',
+        'get_state', 'home', 'lift_to', 'move', 'move_to', 'pitch_to',
+        'roll_to', 'rotate_to', 'run_script', 'shift_to', 'wait',
       ])
     } finally { await disconnect() }
   })
@@ -170,7 +174,7 @@ describe('motion tools (MV)', () => {
   it('MV-02: shift_to sets s1 and calls sendServoState()', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
-      const Result = await callTool(McpClient, 'shift_to', { deg:100 })
+      const Result = await callTool(McpClient, 'shift_to', { angle:100 })
       expect(isErrorResult(Result)).toBe(false)
       expect(Hoisted.LastStateUpdate).toEqual({ s1:100 })
       expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
@@ -180,7 +184,7 @@ describe('motion tools (MV)', () => {
   it('MV-03: roll_to sets s2 and calls sendServoState()', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
-      const Result = await callTool(McpClient, 'roll_to', { deg:60 })
+      const Result = await callTool(McpClient, 'roll_to', { angle:60 })
       expect(isErrorResult(Result)).toBe(false)
       expect(Hoisted.LastStateUpdate).toEqual({ s2:60 })
       expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
@@ -190,7 +194,7 @@ describe('motion tools (MV)', () => {
   it('MV-04: pitch_to sets s3 and calls sendServoState()', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
-      const Result = await callTool(McpClient, 'pitch_to', { deg:80 })
+      const Result = await callTool(McpClient, 'pitch_to', { angle:80 })
       expect(isErrorResult(Result)).toBe(false)
       expect(Hoisted.LastStateUpdate).toEqual({ s3:80 })
       expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
@@ -200,7 +204,7 @@ describe('motion tools (MV)', () => {
   it('MV-05: rotate_to sets s4 and calls sendServoState()', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
-      const Result = await callTool(McpClient, 'rotate_to', { deg:120 })
+      const Result = await callTool(McpClient, 'rotate_to', { angle:120 })
       expect(isErrorResult(Result)).toBe(false)
       expect(Hoisted.LastStateUpdate).toEqual({ s4:120 })
       expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
@@ -210,7 +214,7 @@ describe('motion tools (MV)', () => {
   it('MV-06: lift_to sets s5 and calls sendServoState()', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
-      const Result = await callTool(McpClient, 'lift_to', { deg:30 })
+      const Result = await callTool(McpClient, 'lift_to', { angle:30 })
       expect(isErrorResult(Result)).toBe(false)
       expect(Hoisted.LastStateUpdate).toEqual({ s5:30 })
       expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
@@ -236,6 +240,25 @@ describe('motion tools (MV)', () => {
       expect(isErrorResult(Result)).toBe(false)
       expect(Hoisted.LastStateUpdate).toEqual({ s1:100, s4:120 })
       expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+    } finally { await disconnect() }
+  })
+
+/**** MT-01 – MT-02: move_to ****/
+
+  it('MT-01: move_to with a single servo and within_ms calls moveTo', async () => {
+    const { McpClient, disconnect } = await makeConnectedPair()
+    try {
+      const Result = await callTool(McpClient, 'move_to', { within_ms:100, s1:120 })
+      expect(isErrorResult(Result)).toBe(false)
+    } finally { await disconnect() }
+  })
+
+  it('MT-02: move_to with no servo args returns isError=true', async () => {
+    const { McpClient, disconnect } = await makeConnectedPair()
+    try {
+      const Result = await callTool(McpClient, 'move_to', { within_ms:100 })
+      expect(isErrorResult(Result)).toBe(true)
+      expect(firstText(Result)).toContain('s1–s5')
     } finally { await disconnect() }
   })
 
@@ -274,6 +297,33 @@ describe('motion tools (MV)', () => {
         s1:expect.any(Number), s2:expect.any(Number), s3:expect.any(Number),
         s4:expect.any(Number), s5:expect.any(Number),
       })
+    } finally { await disconnect() }
+  })
+
+})
+
+describe('script tool (SC)', () => {
+
+/**** SC-01: run_script delegates to runScript and returns success ****/
+
+  it('SC-01: run_script calls runScript and returns a success response', async () => {
+    const { McpClient, disconnect } = await makeConnectedPair()
+    try {
+      const Result = await callTool(McpClient, 'run_script', { script:'home\nwait 0' })
+      expect(isErrorResult(Result)).toBe(false)
+      expect(Hoisted.runScript).toHaveBeenCalledOnce()
+    } finally { await disconnect() }
+  })
+
+/**** SC-02: error from runScript propagates as isError=true ****/
+
+  it('SC-02: an error thrown by runScript propagates as isError=true', async () => {
+    Hoisted.runScript.mockRejectedValueOnce(new Error("line 1: unknown command 'bad'"))
+    const { McpClient, disconnect } = await makeConnectedPair()
+    try {
+      const Result = await callTool(McpClient, 'run_script', { script:'bad' })
+      expect(isErrorResult(Result)).toBe(true)
+      expect(firstText(Result)).toContain('line 1')
     } finally { await disconnect() }
   })
 

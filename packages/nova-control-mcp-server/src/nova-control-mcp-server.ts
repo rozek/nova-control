@@ -20,7 +20,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 
-import { openNova } from 'nova-control-node'
+import { openNova, runScript } from 'nova-control-node'
 import type { NovaController, ServoUpdate } from 'nova-control-node'
 
 //----------------------------------------------------------------------------//
@@ -149,8 +149,8 @@ const ToolList = [
     description: 'shift head forward (>90°) or back (<90°) — s1',
     inputSchema: {
       type:       'object' as const,
-      properties: { deg:{ type:'number', description:'target angle in degrees' } },
-      required:   [ 'deg' ],
+      properties: { angle:{ type:'number' as const, description:'target angle in degrees' } },
+      required:   [ 'angle' ],
     },
   },
   {
@@ -158,8 +158,8 @@ const ToolList = [
     description: 'roll head clockwise (>90°) or counter-clockwise (<90°) — s2',
     inputSchema: {
       type:       'object' as const,
-      properties: { deg:{ type:'number', description:'target angle in degrees' } },
-      required:   [ 'deg' ],
+      properties: { angle:{ type:'number' as const, description:'target angle in degrees' } },
+      required:   [ 'angle' ],
     },
   },
   {
@@ -167,8 +167,8 @@ const ToolList = [
     description: 'pitch head up (>110°) or down (<110°) — s3',
     inputSchema: {
       type:       'object' as const,
-      properties: { deg:{ type:'number', description:'target angle in degrees' } },
-      required:   [ 'deg' ],
+      properties: { angle:{ type:'number' as const, description:'target angle in degrees' } },
+      required:   [ 'angle' ],
     },
   },
   {
@@ -176,8 +176,8 @@ const ToolList = [
     description: 'rotate body around Z-axis — s4',
     inputSchema: {
       type:       'object' as const,
-      properties: { deg:{ type:'number', description:'target angle in degrees' } },
-      required:   [ 'deg' ],
+      properties: { angle:{ type:'number' as const, description:'target angle in degrees' } },
+      required:   [ 'angle' ],
     },
   },
   {
@@ -185,8 +185,26 @@ const ToolList = [
     description: 'lift head on secondary axis, range 20°–150° — s5',
     inputSchema: {
       type:       'object' as const,
-      properties: { deg:{ type:'number', description:'target angle in degrees' } },
-      required:   [ 'deg' ],
+      properties: { angle:{ type:'number' as const, description:'target angle in degrees' } },
+      required:   [ 'angle' ],
+    },
+  },
+  {
+    name:        'move_to',
+    description: 'move one or more servos smoothly to their target positions, ' +
+                 'completing the movement in the specified number of milliseconds ' +
+                 'using a trapezoidal ramp-up/ramp-down profile',
+    inputSchema: {
+      type:       'object' as const,
+      properties: {
+        within_ms: { type:'number' as const, description:'total movement duration in milliseconds (must be > 0)' },
+        s1: { type:'number' as const, description:'head shift target angle (optional)' },
+        s2: { type:'number' as const, description:'head roll target angle (optional)' },
+        s3: { type:'number' as const, description:'head pitch target angle (optional)' },
+        s4: { type:'number' as const, description:'body rotate target angle (optional)' },
+        s5: { type:'number' as const, description:'head lift target angle (optional)' },
+      },
+      required: [ 'within_ms' ],
     },
   },
   {
@@ -204,6 +222,24 @@ const ToolList = [
     inputSchema: {
       type:       'object' as const,
       properties: {},
+    },
+  },
+  {
+    name:        'run_script',
+    description: (
+      'execute a multi-line movement script — one command per line; ' +
+      'blank lines and lines starting with # are ignored; ' +
+      'commands: home | shift-to <deg> | roll-to <deg> | pitch-to <deg> | ' +
+      'rotate-to <deg> | lift-to <deg> | ' +
+      'move [shift-to <deg>] [roll-to <deg>] [pitch-to <deg>] ' +
+      '[rotate-to <deg>] [lift-to <deg>] | wait <ms>'
+    ),
+    inputSchema: {
+      type:       'object' as const,
+      properties: {
+        script: { type:'string', description:'multi-line movement script' },
+      },
+      required: [ 'script' ],
     },
   },
 ]
@@ -245,51 +281,72 @@ async function handleMove (Args:ToolArgs):Promise<string> {
 /**** handleShiftTo ****/
 
 async function handleShiftTo (Args:ToolArgs):Promise<string> {
-  const Deg  = Number(Args.deg)
-  const Nova = await getController()
-  Nova.State = { s1:Deg }
+  const Angle = Number(Args.angle)
+  const Nova  = await getController()
+  Nova.State  = { s1:Angle }
   await Nova.sendServoState()
-  return `s1 (shift) → ${Deg}°`
+  return `s1 (shift) → ${Angle}°`
 }
 
 /**** handleRollTo ****/
 
 async function handleRollTo (Args:ToolArgs):Promise<string> {
-  const Deg  = Number(Args.deg)
-  const Nova = await getController()
-  Nova.State = { s2:Deg }
+  const Angle = Number(Args.angle)
+  const Nova  = await getController()
+  Nova.State  = { s2:Angle }
   await Nova.sendServoState()
-  return `s2 (roll) → ${Deg}°`
+  return `s2 (roll) → ${Angle}°`
 }
 
 /**** handlePitchTo ****/
 
 async function handlePitchTo (Args:ToolArgs):Promise<string> {
-  const Deg  = Number(Args.deg)
-  const Nova = await getController()
-  Nova.State = { s3:Deg }
+  const Angle = Number(Args.angle)
+  const Nova  = await getController()
+  Nova.State  = { s3:Angle }
   await Nova.sendServoState()
-  return `s3 (pitch) → ${Deg}°`
+  return `s3 (pitch) → ${Angle}°`
 }
 
 /**** handleRotateTo ****/
 
 async function handleRotateTo (Args:ToolArgs):Promise<string> {
-  const Deg  = Number(Args.deg)
-  const Nova = await getController()
-  Nova.State = { s4:Deg }
+  const Angle = Number(Args.angle)
+  const Nova  = await getController()
+  Nova.State  = { s4:Angle }
   await Nova.sendServoState()
-  return `s4 (rotate) → ${Deg}°`
+  return `s4 (rotate) → ${Angle}°`
 }
 
 /**** handleLiftTo ****/
 
 async function handleLiftTo (Args:ToolArgs):Promise<string> {
-  const Deg  = Number(Args.deg)
-  const Nova = await getController()
-  Nova.State = { s5:Deg }
+  const Angle = Number(Args.angle)
+  const Nova  = await getController()
+  Nova.State  = { s5:Angle }
   await Nova.sendServoState()
-  return `s5 (lift) → ${Deg}°`
+  return `s5 (lift) → ${Angle}°`
+}
+
+/**** handleMoveTo ****/
+
+async function handleMoveTo (Args:ToolArgs):Promise<string> {
+  const WithinMS = Number(Args.within_ms)
+  if (isNaN(WithinMS) || (WithinMS <= 0)) {
+    throw new Error('move_to: within_ms must be a positive number')
+  }
+  const Update:ServoUpdate = {}
+  if (Args.s1 != null) { Update.s1 = Number(Args.s1) }
+  if (Args.s2 != null) { Update.s2 = Number(Args.s2) }
+  if (Args.s3 != null) { Update.s3 = Number(Args.s3) }
+  if (Args.s4 != null) { Update.s4 = Number(Args.s4) }
+  if (Args.s5 != null) { Update.s5 = Number(Args.s5) }
+  if (Object.keys(Update).length === 0) {
+    throw new Error('move_to: at least one servo target (s1–s5) must be specified')
+  }
+  const Nova = await getController()
+  await Nova.moveTo(Update, WithinMS)
+  return 'move completed'
 }
 
 /**** handleWait ****/
@@ -312,6 +369,15 @@ async function handleGetState ():Promise<string> {
   return JSON.stringify(Nova.State)
 }
 
+/**** handleRunScript ****/
+
+async function handleRunScript (Args:ToolArgs):Promise<string> {
+  const Script = String(Args.script ?? '')
+  const Nova   = await getController()
+  await runScript(Nova, Script)
+  return 'script executed successfully'
+}
+
 //----------------------------------------------------------------------------//
 //                                  Server                                   //
 //----------------------------------------------------------------------------//
@@ -320,7 +386,7 @@ async function handleGetState ():Promise<string> {
 
 export function createServer ():Server {
   const McpServer = new Server(
-    { name:'nova-control-mcp-server', version:'0.0.4' },
+    { name:'nova-control-mcp-server', version:'0.0.5' },
     { capabilities:{ tools:{} } }
   )
 
@@ -341,8 +407,10 @@ export function createServer ():Server {
         case 'pitch_to':  Result = await handlePitchTo(Args);  break
         case 'rotate_to': Result = await handleRotateTo(Args); break
         case 'lift_to':   Result = await handleLiftTo(Args);   break
+        case 'move_to':   Result = await handleMoveTo(Args);   break
         case 'wait':      Result = await handleWait(Args);     break
-        case 'get_state': Result = await handleGetState();     break
+        case 'get_state':   Result = await handleGetState();       break
+        case 'run_script':  Result = await handleRunScript(Args);  break
         default:
           return {
             content: [{ type:'text' as const, text:`unknown tool: ${ToolName}` }],

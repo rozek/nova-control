@@ -76,3 +76,41 @@ Test cases for the `nova-control-browser` package, grouped by test file.
 | C-12 | `Nova.State = { s4:120 }` then `Nova.State = { s1:100 }; sendServoState()` | s1=100, s4=last-sent (not 120) |
 | C-13 | `destroy()` calls `writer.releaseLock()` and `port.close()` | both spy methods called |
 | C-14 | write after `destroy()` is a no-op | writer write spy not called again; no throw |
+
+---
+
+## nova-control-browser.script.test.ts
+
+| # | Test case | Expected result |
+|---|---|---|
+| RS-01 | empty script | resolves; `home` and `sendServoState` not called |
+| RS-02 | blank lines and `#` comment lines only | resolves; no controller method called |
+| RS-03 | `home` | `Nova.home()` called once |
+| RS-04 | `shift-to 100` | `Nova.shiftHeadTo(100)` called |
+| RS-05 | `roll-to 60` | `Nova.rollHeadTo(60)` called |
+| RS-06 | `pitch-to 80` | `Nova.pitchHeadTo(80)` called |
+| RS-07 | `rotate-to 120` | `Nova.rotateBodyTo(120)` called |
+| RS-08 | `lift-to 30` | `Nova.liftHeadTo(30)` called |
+| RS-09 | `move shift-to 100 rotate-to 120` | `Nova.State` set to `{ s1:100, s4:120 }`; `sendServoState` called once |
+| RS-10 | `wait 0` | resolves without error |
+| RS-11 | multi-line `home\nshift-to 100` | commands executed in order |
+| RS-12 | unknown command on line 2 | rejects with error containing `'line 2'` |
+| RS-13 | `shift-to abc` (non-numeric angle) | rejects with error containing `'line 1'` |
+| RS-14 | `move` with no servo arguments | rejects with error containing `'line 1'` |
+| RS-15 | `wait -1` (negative duration) | rejects with error containing `'line 1'` |
+
+---
+
+## nova-control-browser.controller.test.ts (continued)
+
+### Timed movement (TM)
+
+| # | Test case | Expected result |
+|---|---|---|
+| TM-01 | `moveTo({ s1:120 })` without `withinMS` | exactly one packet written; byte 3 = 120 |
+| TM-02 | `moveTo({ s1:120 }, 5)` with `StepIntervalMs:1` | more than one packet written |
+| TM-03 | `shiftHeadTo(120, 5)` with `StepIntervalMs:1` | more than one packet written |
+| TM-04 | `home(200)` with `StepIntervalMs:1` | more than one packet written |
+| TM-05 | first packet from `moveTo({ s1:120 }, 10)` | byte 3 > 90 and < 120 (between start and target) |
+| TM-06 | last packet from `moveTo({ s1:120 }, 5)` | byte 3 = 120 (exact target reached) |
+| TM-07 | midpoint packet from `moveTo({ s1:190 }, 100)` | midpoint byte 3 ≈ 140 (±3°, roughly 50% of 100° travel) |

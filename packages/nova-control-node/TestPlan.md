@@ -42,6 +42,8 @@ packets through the (mocked) Node.js serial port.
   assignment and starts fresh from the last-sent state
 - `sendServoState()` — flushes pending state; a no-op when nothing is pending
 - `destroy()` — calls `Port.close()`
+- Script runner — `runScript(Nova, script)` parses and executes a multi-line
+  movement script line by line, calling the appropriate `NovaController` methods
 
 **Out of scope:**
 - Physical servo movement (requires hardware)
@@ -137,3 +139,42 @@ packets through the (mocked) Node.js serial port.
 
 ### destroy
 - **C-13** — `destroy()` calls `Port.close()`
+
+---
+
+## Part V — Script Runner (RS)
+
+### happy path
+- **RS-01** — empty string resolves without calling any method
+- **RS-02** — blank lines and `#`-prefixed comment lines are skipped
+- **RS-03** — `home` calls `Nova.home()`
+- **RS-04** — `shift-to 100` calls `Nova.shiftHeadTo(100)`
+- **RS-05** — `roll-to 60` calls `Nova.rollHeadTo(60)`
+- **RS-06** — `pitch-to 80` calls `Nova.pitchHeadTo(80)`
+- **RS-07** — `rotate-to 120` calls `Nova.rotateBodyTo(120)`
+- **RS-08** — `lift-to 30` calls `Nova.liftHeadTo(30)`
+- **RS-09** — `move shift-to 100 rotate-to 120` sets `Nova.State = { s1:100, s4:120 }` and calls `sendServoState()` once
+- **RS-10** — `wait 0` resolves without error
+- **RS-11** — a multi-line script executes commands in the order they appear
+
+### error path
+- **RS-12** — unknown command on line 2 rejects with an error containing `'line 2'`
+- **RS-13** — non-numeric angle argument rejects with an error containing the line number
+- **RS-14** — `move` with no servo arguments rejects with an error containing the line number
+- **RS-15** — negative wait duration rejects with an error containing the line number
+
+---
+
+## Part VI — Timed Movement (TM)
+
+Tests cover `moveTo()`, the `withinMS` parameter on all servo-command methods, and the trapezoidal easing behaviour.
+
+| test ID | description |
+| --- | --- |
+| TM-01 | `moveTo` without `withinMS` sends exactly one packet |
+| TM-02 | `moveTo` with `withinMS` sends multiple intermediate packets |
+| TM-03 | `shiftHeadTo` with `withinMS` sends multiple intermediate packets |
+| TM-04 | `home` with `withinMS` sends multiple intermediate packets |
+| TM-05 | first timed packet is between start and target (ramp-up effect) |
+| TM-06 | last timed packet reaches exact target angle |
+| TM-07 | symmetric trapezoid: midpoint packet is at approximately 50% of travel |

@@ -146,24 +146,24 @@ function S(e = !1) {
 		p = n.port, m = Number(n.baud ?? "9600"), h = n.onError ?? "stop";
 	})), t.command("home").description("send all servos to their home positions").action(async () => {
 		await (await _()).home();
-	}), t.command("move").description("set one or more servo positions without interrupting the others").option("--shift-to <deg>", "shift head forward (>90°) or back (<90°) — s1").option("--roll-to <deg>", "roll head clockwise (>90°) or counter-clockwise (<90°) — s2").option("--pitch-to <deg>", "pitch head up (>110°) or down (<110°) — s3").option("--rotate-to <deg>", "rotate body around Z-axis — s4").option("--lift-to <deg>", "lift head on secondary axis, range 20°–150° — s5").action(async (e) => {
+	}), t.command("move").description("set one or more servo positions without interrupting the others").option("--shift-to <angle>", "shift head forward (>90°) or back (<90°) — s1").option("--roll-to <angle>", "roll head clockwise (>90°) or counter-clockwise (<90°) — s2").option("--pitch-to <angle>", "pitch head up (>110°) or down (<110°) — s3").option("--rotate-to <angle>", "rotate body around Z-axis — s4").option("--lift-to <angle>", "lift head on secondary axis, range 20°–150° — s5").action(async (e) => {
 		let t = {};
 		if (e.shiftTo != null && (t.s1 = Number(e.shiftTo)), e.rollTo != null && (t.s2 = Number(e.rollTo)), e.pitchTo != null && (t.s3 = Number(e.pitchTo)), e.rotateTo != null && (t.s4 = Number(e.rotateTo)), e.liftTo != null && (t.s5 = Number(e.liftTo)), Object.keys(t).length === 0) throw new d("move: specify at least one servo option (--shift-to, --roll-to, --pitch-to, --rotate-to, --lift-to)", u.UsageError);
 		let n = await _();
 		n.State = t, await n.sendServoState();
-	}), t.command("shift-to").description("shift head forward (>90°) or back (<90°) — s1").argument("<deg>", "target angle in degrees").action(async (e) => {
+	}), t.command("shift-to").description("shift head forward (>90°) or back (<90°) — s1").argument("<angle>", "target angle in degrees").action(async (e) => {
 		let t = await _();
 		t.State = { s1: Number(e) }, await t.sendServoState();
-	}), t.command("roll-to").description("roll head clockwise (>90°) or counter-clockwise (<90°) — s2").argument("<deg>", "target angle in degrees").action(async (e) => {
+	}), t.command("roll-to").description("roll head clockwise (>90°) or counter-clockwise (<90°) — s2").argument("<angle>", "target angle in degrees").action(async (e) => {
 		let t = await _();
 		t.State = { s2: Number(e) }, await t.sendServoState();
-	}), t.command("pitch-to").description("pitch head up (>110°) or down (<110°) — s3").argument("<deg>", "target angle in degrees").action(async (e) => {
+	}), t.command("pitch-to").description("pitch head up (>110°) or down (<110°) — s3").argument("<angle>", "target angle in degrees").action(async (e) => {
 		let t = await _();
 		t.State = { s3: Number(e) }, await t.sendServoState();
-	}), t.command("rotate-to").description("rotate body around Z-axis — s4").argument("<deg>", "target angle in degrees").action(async (e) => {
+	}), t.command("rotate-to").description("rotate body around Z-axis — s4").argument("<angle>", "target angle in degrees").action(async (e) => {
 		let t = await _();
 		t.State = { s4: Number(e) }, await t.sendServoState();
-	}), t.command("lift-to").description("lift head on secondary axis, range 20°–150° — s5").argument("<deg>", "target angle in degrees").action(async (e) => {
+	}), t.command("lift-to").description("lift head on secondary axis, range 20°–150° — s5").argument("<angle>", "target angle in degrees").action(async (e) => {
 		let t = await _();
 		t.State = { s5: Number(e) }, await t.sendServoState();
 	}), t.command("wait").description("pause for <ms> milliseconds before the next command").argument("<ms>", "duration in milliseconds (non-negative number)").action(async (e) => {

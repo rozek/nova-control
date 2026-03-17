@@ -45,12 +45,13 @@ import { SerialPort } from 'serialport'
 /**** NovaController ****/
 
   export interface NovaController {
-    home ():Promise<void>
-    shiftHeadTo (Degrees:number):Promise<void>
-    rollHeadTo (Degrees:number):Promise<void>
-    pitchHeadTo (Degrees:number):Promise<void>
-    liftHeadTo (Degrees:number):Promise<void>
-    rotateBodyTo (Degrees:number):Promise<void>
+    home (withinMS?:number):Promise<void>
+    shiftHeadTo  (Angle:number, withinMS?:number):Promise<void>
+    rollHeadTo   (Angle:number, withinMS?:number):Promise<void>
+    pitchHeadTo  (Angle:number, withinMS?:number):Promise<void>
+    liftHeadTo   (Angle:number, withinMS?:number):Promise<void>
+    rotateBodyTo (Angle:number, withinMS?:number):Promise<void>
+    moveTo       (Target:ServoUpdate, withinMS?:number):Promise<void>
     get State ():ServoState
     set State (Update:ServoUpdate)
     sendServoState ():Promise<void>
@@ -164,7 +165,20 @@ import { SerialPort } from 'serialport'
 /**** NovaOptions ****/
 
   export interface NovaOptions {
-    StepIntervalMs?:number  // ms between ramp steps; default 20 (= 50 Hz); 0 = instant jump
+    StepIntervalMs?: number   // ms between interpolation steps; default 20 (= 50 Hz); 0 = instant jump
+    RampRatio?:      number   // fraction of withinMS for each ramp phase; default 0.25; range 0–0.499
+  }
+
+/**** trapezoidEasing — trapezoidal velocity profile ****/
+// RampRatio: fraction of total duration for each ramp phase (0–0.499)
+// t=0 → position 0; t=1 → position 1; velocity ramps up, holds, then ramps down
+
+  function trapezoidEasing (t:number, RampRatio:number):number {
+    const r    = Math.min(0.499, Math.max(0, RampRatio))
+    const vMax = 1/(1-r)                              // peak velocity (normalised)
+    if (t <= r)     { return vMax*t*t/(2*r) }         // ramp-up
+    if (t <= 1-r)   { return vMax*(t-r/2) }           // constant speed
+    const s = 1-t;  return 1-vMax*s*s/(2*r)           // ramp-down
   }
 
 /**** openNova — factory ****/
@@ -175,6 +189,7 @@ import { SerialPort } from 'serialport'
     PortPath:string, Rate:number = BaudRate, Options?:NovaOptions
   ):Promise<NovaController> {
     const StepIntervalMs = Options?.StepIntervalMs ?? 20
+    const RampRatio      = Options?.RampRatio ?? 0.25
     const Transport = await openNodeTransport(PortPath, Rate)
 
     let currentState:ServoState = { ...HomePosition }
@@ -221,48 +236,110 @@ import { SerialPort } from 'serialport'
       await lastSend
     }
 
+    /**** flushTimed — move to Target in exactly WithinMS milliseconds ****/
+    // uses a trapezoidal velocity profile (ramp-up → constant → ramp-down);
+    // clears any pending state since the timed move supersedes it.
+
+    async function flushTimed (Target:ServoUpdate, WithinMS:number):Promise<void> {
+      const Previous = lastSend
+      lastSend = (async ():Promise<void> => {
+        try { await Previous } catch (Signal) { /* keep chain alive */ }
+        const Start = { ...currentState }
+        const Steps = StepIntervalMs > 0 ? Math.max(1, Math.round(WithinMS/StepIntervalMs)) : 1
+        pendingState = undefined
+        for (let i = 1; i <= Steps; i++) {
+          const t   = trapezoidEasing(i/Steps, RampRatio)
+          const pos:ServoState = { ...currentState }
+          for (const Key of Object.keys(Target) as ServoKey[]) {
+            pos[Key] = Math.round(Start[Key] + (Target[Key]! - Start[Key]) * t)
+          }
+          currentState = pos
+          await Transport.write(buildDirectPacket(pos))
+          if (i < Steps) {
+            await new Promise<void>((resolve) => setTimeout(resolve, StepIntervalMs))
+          }
+        }
+      })()
+      await lastSend
+    }
+
     return {
 
     /**** home — move all servos to their home positions ****/
 
-      async home ():Promise<void> {
-        scheduleUpdate({ ...HomePosition })
-        await flushPending()
+      async home (withinMS?:number):Promise<void> {
+        if ((withinMS != null) && (withinMS > 0)) {
+          await flushTimed({ ...HomePosition }, withinMS)
+        } else {
+          scheduleUpdate({ ...HomePosition })
+          await flushPending()
+        }
       },
 
     /**** shiftHeadTo — NovaServo_1, pin 32: forward (>90°) / back (<90°) ****/
 
-      async shiftHeadTo (Degrees:number):Promise<void> {
-        scheduleUpdate({ s1:Degrees })
-        await flushPending()
+      async shiftHeadTo (Angle:number, withinMS?:number):Promise<void> {
+        if ((withinMS != null) && (withinMS > 0)) {
+          await flushTimed({ s1:Angle }, withinMS)
+        } else {
+          scheduleUpdate({ s1:Angle })
+          await flushPending()
+        }
       },
 
     /**** rollHeadTo — NovaServo_2, pin 34: CW (>90°) / CCW (<90°) ****/
 
-      async rollHeadTo (Degrees:number):Promise<void> {
-        scheduleUpdate({ s2:Degrees })
-        await flushPending()
+      async rollHeadTo (Angle:number, withinMS?:number):Promise<void> {
+        if ((withinMS != null) && (withinMS > 0)) {
+          await flushTimed({ s2:Angle }, withinMS)
+        } else {
+          scheduleUpdate({ s2:Angle })
+          await flushPending()
+        }
       },
 
     /**** pitchHeadTo — NovaServo_3, pin 36: up (>110°) / down (<110°) ****/
 
-      async pitchHeadTo (Degrees:number):Promise<void> {
-        scheduleUpdate({ s3:Degrees })
-        await flushPending()
+      async pitchHeadTo (Angle:number, withinMS?:number):Promise<void> {
+        if ((withinMS != null) && (withinMS > 0)) {
+          await flushTimed({ s3:Angle }, withinMS)
+        } else {
+          scheduleUpdate({ s3:Angle })
+          await flushPending()
+        }
       },
 
     /**** liftHeadTo — NovaServo_5, pin 40: secondary head, 20°–150° ****/
 
-      async liftHeadTo (Degrees:number):Promise<void> {
-        scheduleUpdate({ s5:Degrees })
-        await flushPending()
+      async liftHeadTo (Angle:number, withinMS?:number):Promise<void> {
+        if ((withinMS != null) && (withinMS > 0)) {
+          await flushTimed({ s5:Angle }, withinMS)
+        } else {
+          scheduleUpdate({ s5:Angle })
+          await flushPending()
+        }
       },
 
     /**** rotateBodyTo — NovaServo_4, pin 38: whole body Z-axis ****/
 
-      async rotateBodyTo (Degrees:number):Promise<void> {
-        scheduleUpdate({ s4:Degrees })
-        await flushPending()
+      async rotateBodyTo (Angle:number, withinMS?:number):Promise<void> {
+        if ((withinMS != null) && (withinMS > 0)) {
+          await flushTimed({ s4:Angle }, withinMS)
+        } else {
+          scheduleUpdate({ s4:Angle })
+          await flushPending()
+        }
+      },
+
+    /**** moveTo — move one or more servos to target positions ****/
+
+      async moveTo (Target:ServoUpdate, withinMS?:number):Promise<void> {
+        if ((withinMS != null) && (withinMS > 0)) {
+          await flushTimed(Target, withinMS)
+        } else {
+          scheduleUpdate(Target)
+          await flushPending()
+        }
       },
 
     /**** State — current (or pending) servo positions ****/
@@ -282,5 +359,128 @@ import { SerialPort } from 'serialport'
     /**** destroy — close serial port ****/
 
       destroy ():void { Transport.destroy() },
+    }
+  }
+
+//----------------------------------------------------------------------------//
+//                               Script Runner                                //
+//----------------------------------------------------------------------------//
+
+/**** runScript — execute a multi-line script of movement commands ****/
+// one command per line; blank lines and '#'-comment lines are skipped.
+// supported commands:
+//   home
+//   shift-to <angle>    roll-to <angle>    pitch-to <angle>
+//   rotate-to <angle>   lift-to <angle>
+//   move [shift-to <angle>] [roll-to <angle>] [pitch-to <angle>]
+//        [rotate-to <angle>] [lift-to <angle>]
+//   wait <ms>
+
+  export async function runScript (Nova:NovaController, Script:string):Promise<void> {
+    const Lines = Script.split('\n')
+    for (let i = 0; i < Lines.length; i++) {
+      const Line   = Lines[i].trim()
+      const LineNo = i+1
+      if ((Line === '') || Line.startsWith('#')) { continue }
+      const Tokens  = Line.split(/\s+/)
+      const Command = Tokens[0].toLowerCase()
+      switch (true) {
+        case (Command === 'home'): {
+          await Nova.home()
+          break
+        }
+        case (Command === 'shift-to'): {
+          const Angle = Number(Tokens[1])
+          if (isNaN(Angle)) {
+            throw new Error(
+              `line ${LineNo}: shift-to requires a numeric angle, got '${Tokens[1]}'`
+            )
+          }
+          await Nova.shiftHeadTo(Angle)
+          break
+        }
+        case (Command === 'roll-to'): {
+          const Angle = Number(Tokens[1])
+          if (isNaN(Angle)) {
+            throw new Error(
+              `line ${LineNo}: roll-to requires a numeric angle, got '${Tokens[1]}'`
+            )
+          }
+          await Nova.rollHeadTo(Angle)
+          break
+        }
+        case (Command === 'pitch-to'): {
+          const Angle = Number(Tokens[1])
+          if (isNaN(Angle)) {
+            throw new Error(
+              `line ${LineNo}: pitch-to requires a numeric angle, got '${Tokens[1]}'`
+            )
+          }
+          await Nova.pitchHeadTo(Angle)
+          break
+        }
+        case (Command === 'rotate-to'): {
+          const Angle = Number(Tokens[1])
+          if (isNaN(Angle)) {
+            throw new Error(
+              `line ${LineNo}: rotate-to requires a numeric angle, got '${Tokens[1]}'`
+            )
+          }
+          await Nova.rotateBodyTo(Angle)
+          break
+        }
+        case (Command === 'lift-to'): {
+          const Angle = Number(Tokens[1])
+          if (isNaN(Angle)) {
+            throw new Error(
+              `line ${LineNo}: lift-to requires a numeric angle, got '${Tokens[1]}'`
+            )
+          }
+          await Nova.liftHeadTo(Angle)
+          break
+        }
+        case (Command === 'move'): {
+          const Update:ServoUpdate = {}
+          for (let j = 1; j < Tokens.length; j += 2) {
+            const Key = Tokens[j].toLowerCase()
+            const Angle = Number(Tokens[j+1])
+            if (isNaN(Angle)) {
+              throw new Error(
+                `line ${LineNo}: '${Key}' requires a numeric angle, got '${Tokens[j+1]}'`
+              )
+            }
+            switch (Key) {
+              case 'shift-to':  Update.s1 = Angle; break
+              case 'roll-to':   Update.s2 = Angle; break
+              case 'pitch-to':  Update.s3 = Angle; break
+              case 'rotate-to': Update.s4 = Angle; break
+              case 'lift-to':   Update.s5 = Angle; break
+              default: throw new Error(
+                `line ${LineNo}: unknown move argument '${Key}'`
+              )
+            }
+          }
+          if (Object.keys(Update).length === 0) {
+            throw new Error(
+              `line ${LineNo}: move requires at least one servo argument`
+            )
+          }
+          Nova.State = Update
+          await Nova.sendServoState()
+          break
+        }
+        case (Command === 'wait'): {
+          const Duration = Number(Tokens[1])
+          if (isNaN(Duration) || (Duration < 0)) {
+            throw new Error(
+              `line ${LineNo}: wait requires a non-negative number in ms, got '${Tokens[1]}'`
+            )
+          }
+          await new Promise<void>((resolve) => setTimeout(resolve, Duration))
+          break
+        }
+        default:
+          throw new Error(`line ${LineNo}: unknown command '${Command}'`)
+      }
     }
   }

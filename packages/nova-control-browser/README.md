@@ -10,7 +10,7 @@ Browser ESM module for controlling the [Creoqode Nova DIY AI Robot](../../README
 | --- | --- |
 | **Chrome or Edge 89+** | required — the Web Serial API is only available in Chromium-based browsers. Firefox and Safari do not support it. |
 | **Node.js 22+** | required for the build toolchain only (`npm run build`). Not needed at runtime in the browser. Download from [nodejs.org](https://nodejs.org). |
-| **Arduino sketch** | the matching `Nova_SerialController.ino` sketch must be flashed to the robot's Arduino board (baud rate 9600, 8N1). |
+| **Arduino sketch** | the matching [`Nova_SerialController.ino`](../../Nova_SerialController.ino) sketch must be flashed to the robot's Arduino board (baud rate 9600, 8N1). |
 | **User gesture** | `openNova()` must be called from within a user gesture (e.g. a button click) because the browser requires a transient activation before showing the port picker. |
 
 ---
@@ -65,13 +65,25 @@ Assembles a 5-byte direct servo control packet from the given servo state. Each 
 
 ```typescript
 async function openNova (
-  PortOrOptions?:WebSerialPort | WebSerialPortRequestOptions
+  PortOrOptions?:WebSerialPort | WebSerialPortRequestOptions,
+  Options?:       NovaOptions
 ):Promise<NovaController>
 ```
 
 Opens a USB serial port and returns a `NovaController`. Without an argument the browser's port picker is shown to the user. An existing `WebSerialPort` instance (e.g. from a previous session) may be passed to skip the picker. A `WebSerialPortRequestOptions` object with an optional `filters` array may be passed to narrow the picker to specific USB device IDs.
 
 The returned promise resolves after the 2-second Arduino reset delay that follows every port open.
+
+### `NovaOptions`
+
+```typescript
+interface NovaOptions {
+  StepIntervalMs?: number   // ms between interpolation steps; default 20 (50 Hz); 0 = instant
+  RampRatio?:      number   // fraction of withinMS used for each ramp phase; default 0.25; range 0–0.499
+}
+```
+
+Controls how servo movements are executed when `withinMS` is specified on a movement call. `StepIntervalMs` sets the interval between intermediate packets. `RampRatio` controls what fraction of the total movement time is used for ramp-up and ramp-down phases (each); the remainder is constant speed. For example `RampRatio: 0.25` means 25% ramp-up, 50% constant speed, 25% ramp-down.
 
 ### `NovaController`
 
@@ -98,14 +110,40 @@ interface NovaController {
 | `pitchHeadTo(Degrees)` | sets s3 — head up `> 110°`, down toward `40°` |
 | `liftHeadTo(Degrees)` | sets s5 — secondary head up/down, range `20°`–`150°` |
 | `rotateBodyTo(Degrees)` | sets s4 — rotates the entire body around the Z-axis |
+| `moveTo(Target, withinMS?)` | moves the servos listed in `Target` to their target angles; with `withinMS`, uses the trapezoidal profile |
 | `State` (get) | returns a deep copy of the pending state if any, else the last-sent state |
 | `State` (set) | replaces any pending entry with `Update` merged onto the *last-sent* state (not onto pending); flush with `sendServoState()` |
 | `sendServoState()` | flushes any pending state update to the Arduino |
 | `destroy()` | releases the stream writer lock and closes the serial port |
 
+All movement methods (`home`, `shiftHeadTo`, `rollHeadTo`, `pitchHeadTo`, `liftHeadTo`, `rotateBodyTo`, and `moveTo`) accept an optional `withinMS?:number` final argument. When provided, the method executes a smooth timed movement that completes in exactly the given number of milliseconds, using the trapezoidal velocity profile configured by `RampRatio` in `NovaOptions`. Without `withinMS`, the method uses the existing constant-speed ramp (governed by `StepIntervalMs`).
+
 `State` reflects what was *sent* (or is pending to be sent) to the Arduino, not the physical servo position — there is no read-back channel in the protocol.
 
 Sends are serialised internally: concurrent method calls and `sendServoState()` calls never overlap on the wire. Named methods such as `shiftHeadTo()` *accumulate* changes on top of whatever is already pending; the `State` setter instead *replaces* the pending entry, starting fresh from the last-sent state.
+
+### `runScript`
+
+```typescript
+async function runScript (Nova:NovaController, Script:string):Promise<void>
+```
+
+Parses and executes a multi-line movement script against an already-open controller. Commands are executed sequentially, one per line. Blank lines and lines starting with `#` are ignored.
+
+Supported commands:
+
+| command | description |
+| --- | --- |
+| `home` | send all servos to home positions |
+| `shift-to <deg>` | s1 — head forward / back |
+| `roll-to <deg>` | s2 — head CW / CCW |
+| `pitch-to <deg>` | s3 — head up / down |
+| `rotate-to <deg>` | s4 — body Z-axis rotation |
+| `lift-to <deg>` | s5 — secondary head axis |
+| `move [key val …]` | set multiple servos atomically (e.g. `move shift-to 100 rotate-to 120`) |
+| `wait <ms>` | pause for the given number of milliseconds |
+
+Throws a descriptive error containing the line number if an unknown command or invalid argument is encountered.
 
 ### Types
 
@@ -200,6 +238,16 @@ npm run build --workspace packages/nova-control-browser
 ```
 
 Output is written to `packages/nova-control-browser/dist/`.
+
+---
+
+## Related packages
+
+| package | description |
+| --- | --- |
+| [`nova-control-node`](../nova-control-node/README.md) | same API for Node.js via the `serialport` package |
+| [`nova-control-command`](../nova-control-command/README.md) | CLI — one-shot commands, interactive REPL, and script files |
+| [`nova-control-mcp-server`](../nova-control-mcp-server/README.md) | MCP server — lets an AI assistant control the robot |
 
 ---
 

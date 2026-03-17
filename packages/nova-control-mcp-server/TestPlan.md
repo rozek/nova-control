@@ -23,9 +23,19 @@ The server is tested end-to-end through the MCP protocol using the SDK's `InMemo
 Verifies that the server starts correctly and advertises its capabilities.
 
 - connects via `InMemoryTransport` without error
-- `tools/list` returns exactly the nine expected tool names
+- `tools/list` returns exactly the **eleven** expected tool names
 
-### Part II — MV: Motion tools
+### Part II — MT: Move-To Tool (MT)
+
+Tests cover the `move_to` MCP tool (timed smooth multi-servo movement).
+
+| test ID | description |
+| --- | --- |
+| MT-01 | `move_to` with valid servo targets and `within_ms` succeeds |
+| MT-02 | `move_to` with no servo targets returns an error |
+| MT-03 | `move_to` with `within_ms` ≤ 0 returns an error |
+
+### Part III — MV: Motion tools
 
 Verifies that each tool triggers the correct `NovaController` method and returns a non-error response.
 
@@ -37,7 +47,16 @@ Verifies that each tool triggers the correct `NovaController` method and returns
 | MV-wait | `wait` with valid duration, fake timers |
 | MV-state | `get_state` |
 
-### Part III — ER: Error handling
+### Part IV — SC: Script tool
+
+Verifies the `run_script` tool, which delegates to the `runScript` function from `nova-control-node`.
+
+| Subgroup | Scenario |
+|---|---|
+| SC-success | valid script → `runScript` mock called; success response |
+| SC-error | `runScript` throws → `isError: true` with the error message |
+
+### Part V — ER: Error handling
 
 Verifies that tools return `isError: true` with a descriptive message for invalid inputs, and that a rejected `openNova` propagates correctly.
 
@@ -48,7 +67,7 @@ Verifies that tools return `isError: true` with a descriptive message for invali
 | ER-unknown | call to an unknown tool name |
 | ER-open | `openNova` rejection |
 
-### Part IV — HT: HTTP transport (infrastructure — not automated)
+### Part VI — HT: HTTP transport (infrastructure — not automated)
 
 The HTTP transport (`--transport http`) wraps the already end-to-end-tested `createServer()` with a standard Node.js HTTP server and the MCP SDK's `StreamableHTTPServerTransport`. It is not covered by automated unit tests because it requires a live TCP socket; the correctness of `createServer()` is already verified by Parts I–III.
 

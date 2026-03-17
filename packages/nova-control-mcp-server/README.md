@@ -1,6 +1,6 @@
 # nova-control-mcp-server
 
-An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server for controlling the [NOVA DIY Artificial Intelligence Robot](https://www.creoqode.com/nova) by Creoqode. It exposes the same servo commands as [nova-control-command](../nova-control-command) as MCP tools, allowing any MCP-capable AI assistant (Claude Desktop, Cursor, …) to control the robot arm directly.
+An [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server for controlling the [NOVA DIY Artificial Intelligence Robot](https://www.creoqode.com/nova) by Creoqode. It exposes the same servo commands as [nova-control-command](../nova-control-command/README.md) as MCP tools, allowing any MCP-capable AI assistant (Claude Desktop, Cursor, …) to control the robot arm directly.
 
 ## Prerequisites
 
@@ -119,6 +119,7 @@ The server exposes the following tools. The serial connection is opened lazily o
 |---|---|---|
 | `home` | — | send all servos to their home positions |
 | `move` | `shift_to?`, `roll_to?`, `pitch_to?`, `rotate_to?`, `lift_to?` (all `number`, at least one required) | set one or more servo positions atomically |
+| `move_to` | `within_ms: number` (required), `s1?`, `s2?`, `s3?`, `s4?`, `s5?` (all optional `number`) | move one or more servos to target positions in exactly `within_ms` milliseconds, using a trapezoidal ramp-up/ramp-down profile |
 | `shift_to` | `deg: number` | shift head forward (>90°) or back (<90°) — s1 |
 | `roll_to` | `deg: number` | roll head clockwise (>90°) or counter-clockwise (<90°) — s2 |
 | `pitch_to` | `deg: number` | pitch head up (>110°) or down (<110°) — s3 |
@@ -126,6 +127,7 @@ The server exposes the following tools. The serial connection is opened lazily o
 | `lift_to` | `deg: number` | lift head on secondary axis, range 20°–150° — s5 |
 | `wait` | `ms: number` | pause for `ms` milliseconds before the next action |
 | `get_state` | — | return current servo positions as a JSON object with keys `s1`–`s5` |
+| `run_script` | `script: string` | execute a multi-line movement script (one command per line; blank lines and `#`-comments ignored; commands: `home`, `shift-to`, `roll-to`, `pitch-to`, `rotate-to`, `lift-to`, `move`, `wait`) |
 
 ### Servo mapping
 
@@ -142,13 +144,23 @@ The server exposes the following tools. The serial connection is opened lazily o
 Once the server is running inside Claude Desktop you can give natural-language instructions like:
 
 - *"Move NOVA's head to look straight up."* → `pitch_to(deg: 130)`
-- *"Rotate the body 45° to the left."* → `rotate_to(deg: 45)`
+- *"Rotate the body 45° to the right."* → `rotate_to(deg: 45)`
+- *"Move the head to 120° over 800 ms."* → `move_to(within_ms: 800, s1: 120)`
 - *"Shift to 100°, wait half a second, then return to home."* → `shift_to(100)` + `wait(500)` + `home()`
 - *"What is the current servo state?"* → `get_state()`
+- *"Run the greeting sequence from this script."* → `run_script(script: "home\nwait 500\nshift-to 110\nwait 400\nhome")`
 
 ## Exit behaviour
 
 The server exits cleanly on `SIGINT` (Ctrl+C) or `SIGTERM`, closing the serial connection before quitting.
+
+## Related packages
+
+| package | description |
+|---|---|
+| [`nova-control-browser`](../nova-control-browser/README.md) | browser ESM module — Web Serial API (Chrome / Edge 89+) |
+| [`nova-control-node`](../nova-control-node/README.md) | Node.js ESM module — `serialport` package (used internally by this server) |
+| [`nova-control-command`](../nova-control-command/README.md) | CLI — one-shot commands, interactive REPL, and script files |
 
 ## License
 

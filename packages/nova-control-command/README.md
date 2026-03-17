@@ -238,6 +238,16 @@ nova-control> exit
 
 ---
 
+## Related packages
+
+| package | description |
+| --- | --- |
+| [`nova-control-browser`](../nova-control-browser/README.md) | browser ESM module — Web Serial API (Chrome / Edge 89+) |
+| [`nova-control-node`](../nova-control-node/README.md) | Node.js ESM module — `serialport` package |
+| [`nova-control-mcp-server`](../nova-control-mcp-server/README.md) | MCP server — lets an AI assistant control the robot |
+
+---
+
 ## License
 
 [MIT License](../../LICENSE.md) © Andreas Rozek

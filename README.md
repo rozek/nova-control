@@ -10,18 +10,18 @@ This monorepo contains four npm packages and one Arduino sketch:
 
 | package | target | what it does |
 | --- | --- | --- |
-| `nova-control-browser` | browser | Web Serial API — Chrome / Edge 89+ |
-| `nova-control-node` | Node.js | `serialport` package — any OS |
-| `nova-control-command` | CLI | one-shot commands, REPL, script files |
-| `nova-control-mcp-server` | AI assistant | MCP server for Claude / other LLM clients |
+| [`nova-control-browser`](packages/nova-control-browser/README.md) | browser | Web Serial API — Chrome / Edge 89+ |
+| [`nova-control-node`](packages/nova-control-node/README.md) | Node.js | `serialport` package — any OS |
+| [`nova-control-command`](packages/nova-control-command/README.md) | CLI | one-shot commands, REPL, script files |
+| [`nova-control-mcp-server`](packages/nova-control-mcp-server/README.md) | AI assistant | MCP server for Claude / other LLM clients |
 
-The sketch `Nova_SerialController.ino` must be uploaded to the robot's Arduino (Creoqode Mini Mega / Arduino Mega-compatible) before using any of the packages.
+The sketch [`Nova_SerialController.ino`](Nova_SerialController.ino) must be uploaded to the robot's Arduino (Creoqode Mini Mega / Arduino Mega-compatible) before using any of the packages.
 
 ---
 
 ## Arduino sketch
 
-`Nova_SerialController.ino` — upload this once to the robot.
+[`Nova_SerialController.ino`](Nova_SerialController.ino) — upload this once to the robot.
 
 - baud rate: **9600**, 8N1
 - protocol: 5-byte direct servo control packet
@@ -35,7 +35,7 @@ The sketch `Nova_SerialController.ino` must be uploaded to the robot's Arduino (
 
 ---
 
-## nova-control-browser
+## [nova-control-browser](packages/nova-control-browser/README.md)
 
 ESM module for controlling Nova from a **browser** via the [Web Serial API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Serial_API) (Chrome / Edge 89+).
 
@@ -76,7 +76,7 @@ await Nova.sendServoState()   // one packet with both changes
 
 ---
 
-## nova-control-node
+## [nova-control-node](packages/nova-control-node/README.md)
 
 ESM module for controlling Nova from **Node.js** via the `serialport` package.
 
@@ -107,6 +107,7 @@ The API is otherwise identical to `nova-control-browser`.
 | `SafeRange` | `Record<ServoKey, [number, number]>` | per-servo safe angle ranges |
 | `buildDirectPacket(state)` | `Uint8Array` | builds a 5-byte direct servo control packet |
 | `openNova(...)` | `Promise<NovaController>` | opens the port and returns a controller |
+| `runScript(Nova,Script)` | `Promise<void>` | executes a multi-line movement script against an open controller |
 
 ### `NovaController` interface
 
@@ -117,6 +118,7 @@ The API is otherwise identical to `nova-control-browser`.
 | `rollHeadTo(deg)` | s2 — head CW / CCW |
 | `pitchHeadTo(deg)` | s3 — head up / down |
 | `rotateBodyTo(deg)` | s4 — body Z-axis rotation |
+| `moveTo(Target, withinMS?)` | moves the servos in `Target` to their angles; with `withinMS`, uses a trapezoidal ramp profile |
 | `liftHeadTo(deg)` | s5 — secondary head axis (20–150°) |
 | `get State` | returns a deep copy of the current or pending state |
 | `set State(update)` | replaces the pending update; starts fresh from last-sent |
@@ -125,7 +127,7 @@ The API is otherwise identical to `nova-control-browser`.
 
 ---
 
-## nova-control-command
+## [nova-control-command](packages/nova-control-command/README.md)
 
 CLI tool for sending commands to Nova from a terminal.
 
@@ -185,7 +187,7 @@ home
 
 ---
 
-## nova-control-mcp-server
+## [nova-control-mcp-server](packages/nova-control-mcp-server/README.md)
 
 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that exposes Nova as tools for an AI assistant (Claude, etc.).
 
@@ -217,8 +219,10 @@ Or add to your MCP client configuration (e.g. Claude Desktop `claude_desktop_con
 | `rotate_to` | `degrees: number` | s4: body Z-axis rotation |
 | `lift_to` | `degrees: number` | s5: secondary head axis (20–150°) |
 | `move` | `s1?`, `s2?`, `s3?`, `s4?`, `s5?` (all optional `number`) | set one or more servos in one packet |
+| `move_to` | `within_ms: number`, `s1?`, `s2?`, `s3?`, `s4?`, `s5?` (all optional `number`) | move one or more servos to target positions in exactly `within_ms` ms, with trapezoidal ramp-up/ramp-down |
 | `wait` | `ms: number` | pause for the given number of milliseconds |
 | `get_state` | — | return the current servo state as JSON |
+| `run_script` | `script: string` | execute a multi-line movement script (one command per line; blank lines and `#`-comments ignored) |
 
 ### CLI options
 
