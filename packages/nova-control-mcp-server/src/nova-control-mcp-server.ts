@@ -20,6 +20,7 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 
+import { z }                  from 'zod'
 import { openNova, runScript } from 'nova-control-node'
 import type { NovaController, ServoUpdate } from 'nova-control-node'
 
@@ -307,10 +308,15 @@ const ToolList = [
     description: (
       'execute a multi-line movement script — one command per line; ' +
       'blank lines and lines starting with # are ignored; ' +
-      'commands: home | shift-to <angle> | roll-to <angle> | pitch-to <angle> | ' +
-      'rotate-to <angle> | lift-to <angle> | ' +
+      'each command is fully awaited before the next begins; ' +
+      'commands: ' +
+      'home [<within_ms>] | ' +
+      'shift-to <angle> [<within_ms>] | roll-to <angle> [<within_ms>] | ' +
+      'pitch-to <angle> [<within_ms>] | rotate-to <angle> [<within_ms>] | ' +
+      'lift-to <angle> [<within_ms>] | ' +
       'move [shift-to <angle>] [roll-to <angle>] [pitch-to <angle>] ' +
-      '[rotate-to <angle>] [lift-to <angle>] | wait <ms>'
+      '[rotate-to <angle>] [lift-to <angle>] [within-ms <ms>] | ' +
+      'wait <ms>'
     ),
     inputSchema: {
       type:       'object' as const,
@@ -335,6 +341,77 @@ const ToolList = [
 ]
 
 //----------------------------------------------------------------------------//
+//                          argument validation                               //
+//----------------------------------------------------------------------------//
+
+const AngleSchema    = z.number().finite()
+const withinMsSchema = z.number().positive()
+
+const HomeArgsSchema = z.object({
+  within_ms: withinMsSchema.optional(),
+})
+
+const SingleServoArgsSchema = z.object({
+  angle:     AngleSchema,
+  within_ms: withinMsSchema.optional(),
+})
+
+const MoveArgsSchema = z.object({
+  shift_to:  AngleSchema.optional(),
+  roll_to:   AngleSchema.optional(),
+  pitch_to:  AngleSchema.optional(),
+  rotate_to: AngleSchema.optional(),
+  lift_to:   AngleSchema.optional(),
+  within_ms: withinMsSchema.optional(),
+}).superRefine((v, ctx) => {
+  if (
+    (v.shift_to == null) && (v.roll_to  == null) && (v.pitch_to  == null) &&
+    (v.rotate_to == null) && (v.lift_to == null)
+  ) {
+    ctx.addIssue({
+      code:    z.ZodIssueCode.custom,
+      message: 'move: at least one of shift_to, roll_to, pitch_to, rotate_to, lift_to is required',
+    })
+  }
+})
+
+const MoveToArgsSchema = z.object({
+  within_ms: withinMsSchema,
+  s1: AngleSchema.optional(),
+  s2: AngleSchema.optional(),
+  s3: AngleSchema.optional(),
+  s4: AngleSchema.optional(),
+  s5: AngleSchema.optional(),
+}).superRefine((v, ctx) => {
+  if (
+    (v.s1 == null) && (v.s2 == null) && (v.s3 == null) &&
+    (v.s4 == null) && (v.s5 == null)
+  ) {
+    ctx.addIssue({
+      code:    z.ZodIssueCode.custom,
+      message: 'move_to: at least one servo target (s1–s5) must be specified',
+    })
+  }
+})
+
+const WaitArgsSchema = z.object({
+  ms: z.number().finite().nonnegative(),
+})
+
+const RunScriptArgsSchema = z.object({
+  script: z.string(),
+})
+
+/**** formatZodError — converts ZodError issues into a readable string ****/
+
+function formatZodError (Err:z.ZodError):string {
+  return Err.issues.map((Issue) => {
+    const Path = (Issue.path.length > 0) ? `${Issue.path.join('.')}: ` : ''
+    return `${Path}${Issue.message}`
+  }).join('; ')
+}
+
+//----------------------------------------------------------------------------//
 //                              tool handlers                                 //
 //----------------------------------------------------------------------------//
 
@@ -343,79 +420,69 @@ type ToolArgs = Record<string,unknown>
 /**** handleHome ****/
 
 async function handleHome (Args:ToolArgs):Promise<string> {
-  const WithinMS = (Args.within_ms != null) ? Number(Args.within_ms) : undefined
-  const Nova     = await getController()
-  await Nova.home(WithinMS)
+  const { within_ms:withinMS } = HomeArgsSchema.parse(Args)
+  const Nova = await getController()
+  await Nova.home(withinMS)
   return 'all servos moved to home positions'
 }
 
 /**** handleMove ****/
 
 async function handleMove (Args:ToolArgs):Promise<string> {
+  const Parsed  = MoveArgsSchema.parse(Args)
   const Update:ServoUpdate = {}
-  if (Args.shift_to  != null) { Update.s1 = Number(Args.shift_to) }
-  if (Args.roll_to   != null) { Update.s2 = Number(Args.roll_to) }
-  if (Args.pitch_to  != null) { Update.s3 = Number(Args.pitch_to) }
-  if (Args.rotate_to != null) { Update.s4 = Number(Args.rotate_to) }
-  if (Args.lift_to   != null) { Update.s5 = Number(Args.lift_to) }
-  if (Object.keys(Update).length === 0) {
-    throw new Error(
-      'move: at least one of shift_to, roll_to, pitch_to, rotate_to, lift_to is required'
-    )
-  }
-  const WithinMS = (Args.within_ms != null) ? Number(Args.within_ms) : undefined
-  const Nova     = await getController()
-  await Nova.moveTo(Update, WithinMS)
+  if (Parsed.shift_to  != null) { Update.s1 = Parsed.shift_to }
+  if (Parsed.roll_to   != null) { Update.s2 = Parsed.roll_to }
+  if (Parsed.pitch_to  != null) { Update.s3 = Parsed.pitch_to }
+  if (Parsed.rotate_to != null) { Update.s4 = Parsed.rotate_to }
+  if (Parsed.lift_to   != null) { Update.s5 = Parsed.lift_to }
+  const Nova = await getController()
+  await Nova.moveTo(Update, Parsed.within_ms)
   return `servos updated: ${JSON.stringify(Update)}`
 }
 
 /**** handleShiftTo ****/
 
 async function handleShiftTo (Args:ToolArgs):Promise<string> {
-  const Angle    = Number(Args.angle)
-  const WithinMS = (Args.within_ms != null) ? Number(Args.within_ms) : undefined
-  const Nova     = await getController()
-  await Nova.shiftHeadTo(Angle, WithinMS)
+  const { angle:Angle, within_ms:withinMS } = SingleServoArgsSchema.parse(Args)
+  const Nova = await getController()
+  await Nova.shiftHeadTo(Angle, withinMS)
   return `s1 (shift) → ${Angle}°`
 }
 
 /**** handleRollTo ****/
 
 async function handleRollTo (Args:ToolArgs):Promise<string> {
-  const Angle    = Number(Args.angle)
-  const WithinMS = (Args.within_ms != null) ? Number(Args.within_ms) : undefined
-  const Nova     = await getController()
-  await Nova.rollHeadTo(Angle, WithinMS)
+  const { angle:Angle, within_ms:withinMS } = SingleServoArgsSchema.parse(Args)
+  const Nova = await getController()
+  await Nova.rollHeadTo(Angle, withinMS)
   return `s2 (roll) → ${Angle}°`
 }
 
 /**** handlePitchTo ****/
 
 async function handlePitchTo (Args:ToolArgs):Promise<string> {
-  const Angle    = Number(Args.angle)
-  const WithinMS = (Args.within_ms != null) ? Number(Args.within_ms) : undefined
-  const Nova     = await getController()
-  await Nova.pitchHeadTo(Angle, WithinMS)
+  const { angle:Angle, within_ms:withinMS } = SingleServoArgsSchema.parse(Args)
+  const Nova = await getController()
+  await Nova.pitchHeadTo(Angle, withinMS)
   return `s3 (pitch) → ${Angle}°`
 }
 
 /**** handleRotateTo ****/
 
 async function handleRotateTo (Args:ToolArgs):Promise<string> {
-  const Angle    = Number(Args.angle)
-  const WithinMS = (Args.within_ms != null) ? Number(Args.within_ms) : undefined
-  const Nova     = await getController()
-  await Nova.rotateBodyTo(Angle, WithinMS)
+  const { angle:Angle, within_ms:withinMS } = SingleServoArgsSchema.parse(Args)
+  const Nova = await getController()
+  await Nova.rotateBodyTo(Angle, withinMS)
   return `s4 (rotate) → ${Angle}°`
 }
 
 /**** handleLiftTo ****/
 
 async function handleLiftTo (Args:ToolArgs):Promise<string> {
-  const Angle    = Number(Args.angle)
-  const WithinMS = (Args.within_ms != null) ? Number(Args.within_ms) : undefined
-  const Nova     = await getController()
-  await Nova.liftHeadTo(Angle, WithinMS)
+  const { angle:Angle, within_ms:withinMS } = SingleServoArgsSchema.parse(Args)
+  const Nova = await getController()
+  await Nova.liftHeadTo(Angle, withinMS)
   return `s5 (lift) → ${Angle}°`
 }
 
@@ -430,35 +497,29 @@ async function handleDisconnect ():Promise<string> {
 /**** handleMoveTo ****/
 
 async function handleMoveTo (Args:ToolArgs):Promise<string> {
-  const WithinMS = Number(Args.within_ms)
-  if (isNaN(WithinMS) || (WithinMS <= 0)) {
-    throw new Error('move_to: within_ms must be a positive number')
-  }
+  const Parsed  = MoveToArgsSchema.parse(Args)
   const Update:ServoUpdate = {}
-  if (Args.s1 != null) { Update.s1 = Number(Args.s1) }
-  if (Args.s2 != null) { Update.s2 = Number(Args.s2) }
-  if (Args.s3 != null) { Update.s3 = Number(Args.s3) }
-  if (Args.s4 != null) { Update.s4 = Number(Args.s4) }
-  if (Args.s5 != null) { Update.s5 = Number(Args.s5) }
-  if (Object.keys(Update).length === 0) {
-    throw new Error('move_to: at least one servo target (s1–s5) must be specified')
-  }
+  if (Parsed.s1 != null) { Update.s1 = Parsed.s1 }
+  if (Parsed.s2 != null) { Update.s2 = Parsed.s2 }
+  if (Parsed.s3 != null) { Update.s3 = Parsed.s3 }
+  if (Parsed.s4 != null) { Update.s4 = Parsed.s4 }
+  if (Parsed.s5 != null) { Update.s5 = Parsed.s5 }
   const Nova = await getController()
-  await Nova.moveTo(Update, WithinMS)
+  await Nova.moveTo(Update, Parsed.within_ms)
   return 'move completed'
 }
 
 /**** handleWait ****/
 
 async function handleWait (Args:ToolArgs):Promise<string> {
-  const Duration = Number(Args.ms)
-  if (isNaN(Duration) || (Duration < 0)) {
+  let Parsed:{ ms:number }
+  try { Parsed = WaitArgsSchema.parse(Args) } catch (Signal) {
     throw new Error(
       `wait: invalid duration '${Args.ms}' — expected a non-negative number`
     )
   }
-  await new Promise<void>((resolve) => setTimeout(resolve, Duration))
-  return `waited ${Duration} ms`
+  await new Promise<void>((resolve) => setTimeout(resolve, Parsed.ms))
+  return `waited ${Parsed.ms} ms`
 }
 
 /**** handleGetState ****/
@@ -471,8 +532,8 @@ async function handleGetState ():Promise<string> {
 /**** handleRunScript ****/
 
 async function handleRunScript (Args:ToolArgs):Promise<string> {
-  const Script = String(Args.script ?? '')
-  const Nova   = await getController()
+  const { script:Script } = RunScriptArgsSchema.parse(Args)
+  const Nova = await getController()
   await runScript(Nova, Script)
   return 'script executed successfully'
 }
@@ -485,7 +546,7 @@ async function handleRunScript (Args:ToolArgs):Promise<string> {
 
 export function createServer ():Server {
   const McpServer = new Server(
-    { name:'nova-control-mcp-server', version:'0.0.8' },
+    { name:'nova-control-mcp-server', version:'0.0.8' }, // keep in sync with package.json
     { capabilities:{ tools:{} } }
   )
 
@@ -508,9 +569,9 @@ export function createServer ():Server {
         case 'lift_to':   Result = await handleLiftTo(Args);   break
         case 'move_to':   Result = await handleMoveTo(Args);   break
         case 'wait':      Result = await handleWait(Args);     break
-        case 'get_state':   Result = await handleGetState();       break
-        case 'run_script':   Result = await handleRunScript(Args);    break
-        case 'disconnect':   Result = await handleDisconnect();       break
+        case 'get_state':  Result = await handleGetState();     break
+        case 'run_script': Result = await handleRunScript(Args); break
+        case 'disconnect': Result = await handleDisconnect();   break
         default:
           return {
             content: [{ type:'text' as const, text:`unknown tool: ${ToolName}` }],
@@ -519,7 +580,9 @@ export function createServer ():Server {
       }
       return { content: [{ type:'text' as const, text:Result }] }
     } catch (Signal:unknown) {
-      const Message = (Signal instanceof Error) ? Signal.message : String(Signal)
+      const Message = (Signal instanceof z.ZodError)
+        ? formatZodError(Signal)
+        : (Signal instanceof Error) ? Signal.message : String(Signal)
       return {
         content: [{ type:'text' as const, text:Message }],
         isError: true,

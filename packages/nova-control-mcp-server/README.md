@@ -129,7 +129,7 @@ All movement tools accept an optional `within_ms` parameter. When provided, the 
 | `lift_to` | `angle: number`; `within_ms?` | lift head on secondary axis, range 20°–150° — s5 |
 | `wait` | `ms: number` | pause for `ms` milliseconds before the next action |
 | `get_state` | — | return current servo positions as a JSON object with keys `s1`–`s5` |
-| `run_script` | `script: string` | execute a multi-line movement script (one command per line; blank lines and `#`-comments ignored; commands: `home`, `shift-to`, `roll-to`, `pitch-to`, `rotate-to`, `lift-to`, `move`, `wait`) |
+| `run_script` | `script: string` | execute a multi-line movement script (one command per line; blank lines and `#`-comments ignored; commands: `home [<within_ms>]`, `shift-to <angle> [<within_ms>]`, `roll-to`, `pitch-to`, `rotate-to`, `lift-to`, `move [...] [within-ms <ms>]`, `wait <ms>`) |
 | `disconnect` | — | close the serial connection to free the port; the connection reopens automatically on the next movement command |
 
 ### Servo mapping

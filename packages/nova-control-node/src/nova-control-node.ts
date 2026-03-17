@@ -236,16 +236,16 @@ import { SerialPort } from 'serialport'
       await lastSend
     }
 
-    /**** flushTimed — move to Target in exactly WithinMS milliseconds ****/
+    /**** flushTimed — move to Target in exactly withinMS milliseconds ****/
     // uses a trapezoidal velocity profile (ramp-up → constant → ramp-down);
     // clears any pending state since the timed move supersedes it.
 
-    async function flushTimed (Target:ServoUpdate, WithinMS:number):Promise<void> {
+    async function flushTimed (Target:ServoUpdate, withinMS:number):Promise<void> {
       const Previous = lastSend
       lastSend = (async ():Promise<void> => {
         try { await Previous } catch (Signal) { /* keep chain alive */ }
         const Start = { ...currentState }
-        const Steps = StepIntervalMs > 0 ? Math.max(1, Math.round(WithinMS/StepIntervalMs)) : 1
+        const Steps = StepIntervalMs > 0 ? Math.max(1, Math.round(withinMS/StepIntervalMs)) : 1
         pendingState = undefined
         for (let i = 1; i <= Steps; i++) {
           const t   = trapezoidEasing(i/Steps, RampRatio)
@@ -388,13 +388,13 @@ import { SerialPort } from 'serialport'
       const Command = Tokens[0].toLowerCase()
       switch (true) {
         case (Command === 'home'): {
-          const WithinMS = (Tokens[1] != null) ? Number(Tokens[1]) : undefined
-          if ((WithinMS != null) && isNaN(WithinMS)) {
+          const withinMS = (Tokens[1] != null) ? Number(Tokens[1]) : undefined
+          if ((withinMS != null) && isNaN(withinMS)) {
             throw new Error(
               `line ${LineNo}: home: within_ms must be a number, got '${Tokens[1]}'`
             )
           }
-          await Nova.home(WithinMS)
+          await Nova.home(withinMS)
           break
         }
         case (Command === 'shift-to'): {
@@ -404,13 +404,13 @@ import { SerialPort } from 'serialport'
               `line ${LineNo}: shift-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
-          if ((WithinMS != null) && isNaN(WithinMS)) {
+          const withinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((withinMS != null) && isNaN(withinMS)) {
             throw new Error(
               `line ${LineNo}: shift-to: within_ms must be a number, got '${Tokens[2]}'`
             )
           }
-          await Nova.shiftHeadTo(Angle, WithinMS)
+          await Nova.shiftHeadTo(Angle, withinMS)
           break
         }
         case (Command === 'roll-to'): {
@@ -420,13 +420,13 @@ import { SerialPort } from 'serialport'
               `line ${LineNo}: roll-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
-          if ((WithinMS != null) && isNaN(WithinMS)) {
+          const withinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((withinMS != null) && isNaN(withinMS)) {
             throw new Error(
               `line ${LineNo}: roll-to: within_ms must be a number, got '${Tokens[2]}'`
             )
           }
-          await Nova.rollHeadTo(Angle, WithinMS)
+          await Nova.rollHeadTo(Angle, withinMS)
           break
         }
         case (Command === 'pitch-to'): {
@@ -436,13 +436,13 @@ import { SerialPort } from 'serialport'
               `line ${LineNo}: pitch-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
-          if ((WithinMS != null) && isNaN(WithinMS)) {
+          const withinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((withinMS != null) && isNaN(withinMS)) {
             throw new Error(
               `line ${LineNo}: pitch-to: within_ms must be a number, got '${Tokens[2]}'`
             )
           }
-          await Nova.pitchHeadTo(Angle, WithinMS)
+          await Nova.pitchHeadTo(Angle, withinMS)
           break
         }
         case (Command === 'rotate-to'): {
@@ -452,13 +452,13 @@ import { SerialPort } from 'serialport'
               `line ${LineNo}: rotate-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
-          if ((WithinMS != null) && isNaN(WithinMS)) {
+          const withinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((withinMS != null) && isNaN(withinMS)) {
             throw new Error(
               `line ${LineNo}: rotate-to: within_ms must be a number, got '${Tokens[2]}'`
             )
           }
-          await Nova.rotateBodyTo(Angle, WithinMS)
+          await Nova.rotateBodyTo(Angle, withinMS)
           break
         }
         case (Command === 'lift-to'): {
@@ -468,18 +468,18 @@ import { SerialPort } from 'serialport'
               `line ${LineNo}: lift-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
-          if ((WithinMS != null) && isNaN(WithinMS)) {
+          const withinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((withinMS != null) && isNaN(withinMS)) {
             throw new Error(
               `line ${LineNo}: lift-to: within_ms must be a number, got '${Tokens[2]}'`
             )
           }
-          await Nova.liftHeadTo(Angle, WithinMS)
+          await Nova.liftHeadTo(Angle, withinMS)
           break
         }
         case (Command === 'move'): {
           const Update:ServoUpdate = {}
-          let WithinMS:number|undefined
+          let withinMS:number|undefined
           for (let j = 1; j < Tokens.length; j += 2) {
             const Key   = Tokens[j].toLowerCase()
             const Angle = Number(Tokens[j+1])
@@ -489,7 +489,7 @@ import { SerialPort } from 'serialport'
                   `line ${LineNo}: within-ms requires a numeric value, got '${Tokens[j+1]}'`
                 )
               }
-              WithinMS = Angle
+              withinMS = Angle
               break
             }
             if (isNaN(Angle)) {
@@ -513,7 +513,7 @@ import { SerialPort } from 'serialport'
               `line ${LineNo}: move requires at least one servo argument`
             )
           }
-          await Nova.moveTo(Update, WithinMS)
+          await Nova.moveTo(Update, withinMS)
           break
         }
         case (Command === 'wait'): {

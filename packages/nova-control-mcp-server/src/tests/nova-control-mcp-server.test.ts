@@ -145,7 +145,7 @@ describe('server handshake (SH)', () => {
     await disconnect()
   })
 
-/**** SH-02: tools/list returns all eleven expected tool names ****/
+/**** SH-02: tools/list returns all twelve expected tool names ****/
 
   it('SH-02: tools/list returns all twelve expected tool names', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
@@ -403,9 +403,20 @@ describe('error handling (ER)', () => {
     } finally { await disconnect() }
   })
 
-/**** ER-04: openNova rejection ****/
+/**** ER-04: unknown tool name ****/
 
-  it('ER-04: a rejected openNova propagates as isError=true', async () => {
+  it('ER-04: an unknown tool name returns isError=true with a descriptive message', async () => {
+    const { McpClient, disconnect } = await makeConnectedPair()
+    try {
+      const Result = await callTool(McpClient, 'fly')
+      expect(isErrorResult(Result)).toBe(true)
+      expect(firstText(Result)).toContain('fly')
+    } finally { await disconnect() }
+  })
+
+/**** ER-05: openNova rejection ****/
+
+  it('ER-05: a rejected openNova propagates as isError=true', async () => {
     Hoisted.openNova.mockRejectedValueOnce(new Error('port not found'))
     const { McpClient, disconnect } = await makeConnectedPair()
     try {

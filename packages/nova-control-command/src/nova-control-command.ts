@@ -10,6 +10,7 @@
 import { fileURLToPath } from 'node:url'
 import { realpathSync }  from 'node:fs'
 import { Command }  from 'commander'
+import { z }        from 'zod'
 import { openNova } from 'nova-control-node'
 import type { NovaController, ServoUpdate } from 'nova-control-node'
 
@@ -40,6 +41,37 @@ import { runScript }    from './ScriptRunner.js'
       super(Message)
       this.name     = 'NovaCommandError'
       this.ExitCode = Code
+    }
+  }
+
+//----------------------------------------------------------------------------//
+//                          argument validation                               //
+//----------------------------------------------------------------------------//
+
+  const AngleSchema        = z.coerce.number().finite()
+  const withinMsSchema     = z.coerce.number().finite().positive()
+  const WaitDurationSchema = z.coerce.number().finite().nonnegative()
+
+/**** parseAngle — validates and coerces an angle argument ****/
+
+  function parseAngle (Raw:string, Cmd:string):number {
+    try { return AngleSchema.parse(Raw) } catch (Signal) {
+      throw new NovaCommandError(
+        `${Cmd}: '${Raw}' is not a valid angle — expected a finite number`,
+        ExitCodes.UsageError
+      )
+    }
+  }
+
+/**** parseWithinMs — validates and coerces an optional --within-ms option ****/
+
+  function parseWithinMs (Raw:string|undefined, Cmd:string):number|undefined {
+    if (Raw == null) { return undefined }
+    try { return withinMsSchema.parse(Raw) } catch (Signal) {
+      throw new NovaCommandError(
+        `${Cmd}: '--within-ms ${Raw}' is not valid — expected a positive number`,
+        ExitCodes.UsageError
+      )
     }
   }
 
@@ -155,9 +187,9 @@ import { runScript }    from './ScriptRunner.js'
       .description('send all servos to their home positions')
       .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
       .action(async (Options) => {
-        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const withinMS = parseWithinMs(Options.withinMs, 'home')
         const Nova     = await getController()
-        await Nova.home(WithinMS)
+        await Nova.home(withinMS)
       })
 
   /**** move ****/
@@ -172,11 +204,11 @@ import { runScript }    from './ScriptRunner.js'
       .option('--within-ms <ms>',    'move smoothly over this many milliseconds (trapezoidal ramp)')
       .action(async (Options) => {
         const Update:ServoUpdate = {}
-        if (Options.shiftTo  != null) { Update.s1 = Number(Options.shiftTo) }
-        if (Options.rollTo   != null) { Update.s2 = Number(Options.rollTo) }
-        if (Options.pitchTo  != null) { Update.s3 = Number(Options.pitchTo) }
-        if (Options.rotateTo != null) { Update.s4 = Number(Options.rotateTo) }
-        if (Options.liftTo   != null) { Update.s5 = Number(Options.liftTo) }
+        if (Options.shiftTo  != null) { Update.s1 = parseAngle(Options.shiftTo,  'move') }
+        if (Options.rollTo   != null) { Update.s2 = parseAngle(Options.rollTo,   'move') }
+        if (Options.pitchTo  != null) { Update.s3 = parseAngle(Options.pitchTo,  'move') }
+        if (Options.rotateTo != null) { Update.s4 = parseAngle(Options.rotateTo, 'move') }
+        if (Options.liftTo   != null) { Update.s5 = parseAngle(Options.liftTo,   'move') }
         if (Object.keys(Update).length === 0) {
           throw new NovaCommandError(
             'move: specify at least one servo option ' +
@@ -184,9 +216,9 @@ import { runScript }    from './ScriptRunner.js'
             ExitCodes.UsageError
           )
         }
-        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const withinMS = parseWithinMs(Options.withinMs, 'move')
         const Nova     = await getController()
-        await Nova.moveTo(Update, WithinMS)
+        await Nova.moveTo(Update, withinMS)
       })
 
   /**** shift-to / roll-to / pitch-to / rotate-to / lift-to ****/
@@ -196,9 +228,10 @@ import { runScript }    from './ScriptRunner.js'
       .argument('<angle>', 'target angle in degrees')
       .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
       .action(async (AngleArg:string, Options) => {
-        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Angle    = parseAngle(AngleArg, 'shift-to')
+        const withinMS = parseWithinMs(Options.withinMs, 'shift-to')
         const Nova     = await getController()
-        await Nova.shiftHeadTo(Number(AngleArg), WithinMS)
+        await Nova.shiftHeadTo(Angle, withinMS)
       })
 
     Program.command('roll-to')
@@ -206,9 +239,10 @@ import { runScript }    from './ScriptRunner.js'
       .argument('<angle>', 'target angle in degrees')
       .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
       .action(async (AngleArg:string, Options) => {
-        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Angle    = parseAngle(AngleArg, 'roll-to')
+        const withinMS = parseWithinMs(Options.withinMs, 'roll-to')
         const Nova     = await getController()
-        await Nova.rollHeadTo(Number(AngleArg), WithinMS)
+        await Nova.rollHeadTo(Angle, withinMS)
       })
 
     Program.command('pitch-to')
@@ -216,9 +250,10 @@ import { runScript }    from './ScriptRunner.js'
       .argument('<angle>', 'target angle in degrees')
       .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
       .action(async (AngleArg:string, Options) => {
-        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Angle    = parseAngle(AngleArg, 'pitch-to')
+        const withinMS = parseWithinMs(Options.withinMs, 'pitch-to')
         const Nova     = await getController()
-        await Nova.pitchHeadTo(Number(AngleArg), WithinMS)
+        await Nova.pitchHeadTo(Angle, withinMS)
       })
 
     Program.command('rotate-to')
@@ -226,9 +261,10 @@ import { runScript }    from './ScriptRunner.js'
       .argument('<angle>', 'target angle in degrees')
       .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
       .action(async (AngleArg:string, Options) => {
-        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Angle    = parseAngle(AngleArg, 'rotate-to')
+        const withinMS = parseWithinMs(Options.withinMs, 'rotate-to')
         const Nova     = await getController()
-        await Nova.rotateBodyTo(Number(AngleArg), WithinMS)
+        await Nova.rotateBodyTo(Angle, withinMS)
       })
 
     Program.command('lift-to')
@@ -236,9 +272,10 @@ import { runScript }    from './ScriptRunner.js'
       .argument('<angle>', 'target angle in degrees')
       .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
       .action(async (AngleArg:string, Options) => {
-        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Angle    = parseAngle(AngleArg, 'lift-to')
+        const withinMS = parseWithinMs(Options.withinMs, 'lift-to')
         const Nova     = await getController()
-        await Nova.liftHeadTo(Number(AngleArg), WithinMS)
+        await Nova.liftHeadTo(Angle, withinMS)
       })
 
   /**** wait ****/
@@ -247,8 +284,8 @@ import { runScript }    from './ScriptRunner.js'
       .description('pause for <ms> milliseconds before the next command')
       .argument('<ms>', 'duration in milliseconds (non-negative number)')
       .action(async (MsArg:string) => {
-        const Duration = Number(MsArg)
-        if (isNaN(Duration) || (Duration < 0)) {
+        let Duration:number
+        try { Duration = WaitDurationSchema.parse(MsArg) } catch (Signal) {
           throw new NovaCommandError(
             `wait: invalid duration '${MsArg}' — expected a non-negative number`,
             ExitCodes.UsageError

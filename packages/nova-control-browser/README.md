@@ -89,12 +89,13 @@ Controls how servo movements are executed when `withinMS` is specified on a move
 
 ```typescript
 interface NovaController {
-  home ():Promise<void>
-  shiftHeadTo (Degrees:number):Promise<void>
-  rollHeadTo (Degrees:number):Promise<void>
-  pitchHeadTo (Degrees:number):Promise<void>
-  liftHeadTo (Degrees:number):Promise<void>
-  rotateBodyTo (Degrees:number):Promise<void>
+  home (withinMS?:number):Promise<void>
+  shiftHeadTo (Angle:number, withinMS?:number):Promise<void>
+  rollHeadTo (Angle:number, withinMS?:number):Promise<void>
+  pitchHeadTo (Angle:number, withinMS?:number):Promise<void>
+  liftHeadTo (Angle:number, withinMS?:number):Promise<void>
+  rotateBodyTo (Angle:number, withinMS?:number):Promise<void>
+  moveTo (Target:ServoUpdate, withinMS?:number):Promise<void>
   get State ():ServoState
   set State (Update:ServoUpdate)
   sendServoState ():Promise<void>
@@ -104,12 +105,12 @@ interface NovaController {
 
 | method / property | description |
 | --- | --- |
-| `home()` | sends all servos to `HomePosition` |
-| `shiftHeadTo(Degrees)` | sets s1 — head forward `> 90°`, back `< 90°` |
-| `rollHeadTo(Degrees)` | sets s2 — head clockwise `> 90°`, counter-clockwise `< 90°` |
-| `pitchHeadTo(Degrees)` | sets s3 — head up `> 110°`, down toward `40°` |
-| `liftHeadTo(Degrees)` | sets s5 — secondary head up/down, range `20°`–`150°` |
-| `rotateBodyTo(Degrees)` | sets s4 — rotates the entire body around the Z-axis |
+| `home(withinMS?)` | sends all servos to `HomePosition` |
+| `shiftHeadTo(Angle, withinMS?)` | sets s1 — head forward `> 90°`, back `< 90°` |
+| `rollHeadTo(Angle, withinMS?)` | sets s2 — head clockwise `> 90°`, counter-clockwise `< 90°` |
+| `pitchHeadTo(Angle, withinMS?)` | sets s3 — head up `> 110°`, down toward `40°` |
+| `liftHeadTo(Angle, withinMS?)` | sets s5 — secondary head up/down, range `20°`–`150°` |
+| `rotateBodyTo(Angle, withinMS?)` | sets s4 — rotates the entire body around the Z-axis |
 | `moveTo(Target, withinMS?)` | moves the servos listed in `Target` to their target angles; with `withinMS`, uses the trapezoidal profile |
 | `State` (get) | returns a deep copy of the pending state if any, else the last-sent state |
 | `State` (set) | replaces any pending entry with `Update` merged onto the *last-sent* state (not onto pending); flush with `sendServoState()` |
@@ -135,12 +136,12 @@ Supported commands:
 | command | description |
 | --- | --- |
 | `home [<within_ms>]` | send all servos to home positions |
-| `shift-to <deg> [<within_ms>]` | s1 — head forward / back |
-| `roll-to <deg> [<within_ms>]` | s2 — head CW / CCW |
-| `pitch-to <deg> [<within_ms>]` | s3 — head up / down |
-| `rotate-to <deg> [<within_ms>]` | s4 — body Z-axis rotation |
-| `lift-to <deg> [<within_ms>]` | s5 — secondary head axis |
-| `move [shift-to <deg>] [roll-to <deg>] [pitch-to <deg>] [rotate-to <deg>] [lift-to <deg>] [within-ms <ms>]` | set multiple servos atomically (e.g. `move shift-to 100 rotate-to 120 within-ms 500`) |
+| `shift-to <angle> [<within_ms>]` | s1 — head forward / back |
+| `roll-to <angle> [<within_ms>]` | s2 — head CW / CCW |
+| `pitch-to <angle> [<within_ms>]` | s3 — head up / down |
+| `rotate-to <angle> [<within_ms>]` | s4 — body Z-axis rotation |
+| `lift-to <angle> [<within_ms>]` | s5 — secondary head axis |
+| `move [shift-to <angle>] [roll-to <angle>] [pitch-to <angle>] [rotate-to <angle>] [lift-to <angle>] [within-ms <ms>]` | set multiple servos atomically (e.g. `move shift-to 100 rotate-to 120 within-ms 500`) |
 | `wait <ms>` | pause for the given number of milliseconds |
 
 Each command is fully awaited before the next begins. Throws a descriptive error containing the line number if an unknown command or invalid argument is encountered.

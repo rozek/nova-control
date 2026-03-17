@@ -83,22 +83,22 @@ Sends all five servos to their home positions simultaneously. Home positions are
 Each command sets exactly one servo and leaves all others at their last-sent positions.
 
 ```
-nova-control --port <path> shift-to  <deg>   [--within-ms <ms>]   # head forward (>90°) or back (<90°) — s1
-nova-control --port <path> roll-to   <deg>   [--within-ms <ms>]   # head clockwise (>90°) or counter-clockwise (<90°) — s2
-nova-control --port <path> pitch-to  <deg>   [--within-ms <ms>]   # head up (>110°) or down (<110°) — s3
-nova-control --port <path> rotate-to <deg>   [--within-ms <ms>]   # body rotation around Z-axis — s4
-nova-control --port <path> lift-to   <deg>   [--within-ms <ms>]   # secondary head lift, range 20°–150° — s5
+nova-control --port <path> shift-to  <angle>   [--within-ms <ms>]   # head forward (>90°) or back (<90°) — s1
+nova-control --port <path> roll-to   <angle>   [--within-ms <ms>]   # head clockwise (>90°) or counter-clockwise (<90°) — s2
+nova-control --port <path> pitch-to  <angle>   [--within-ms <ms>]   # head up (>110°) or down (<110°) — s3
+nova-control --port <path> rotate-to <angle>   [--within-ms <ms>]   # body rotation around Z-axis — s4
+nova-control --port <path> lift-to   <angle>   [--within-ms <ms>]   # secondary head lift, range 20°–150° — s5
 ```
 
-`<deg>` is a number in degrees. The firmware clamps out-of-range values silently. With `--within-ms`, uses a trapezoidal ramp-up/ramp-down profile to complete the movement in the specified number of milliseconds.
+`<angle>` is a number in degrees. The firmware clamps out-of-range values silently. With `--within-ms`, uses a trapezoidal ramp-up/ramp-down profile to complete the movement in the specified number of milliseconds.
 
 ---
 
 ### `move`
 
 ```
-nova-control --port <path> move [--shift-to <deg>] [--roll-to <deg>] [--pitch-to <deg>]
-                                 [--rotate-to <deg>] [--lift-to <deg>] [--within-ms <ms>]
+nova-control --port <path> move [--shift-to <angle>] [--roll-to <angle>] [--pitch-to <angle>]
+                                 [--rotate-to <angle>] [--lift-to <angle>] [--within-ms <ms>]
 ```
 
 Sets multiple servos in a single packet. At least one servo option is required. Servos not mentioned stay at their last-sent positions. With `--within-ms`, uses a trapezoidal ramp-up/ramp-down profile to complete the movement in the specified number of milliseconds. Useful when two or more joints must move simultaneously.

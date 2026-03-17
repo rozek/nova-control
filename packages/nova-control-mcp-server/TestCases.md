@@ -11,8 +11,8 @@
 
 | ID | Description | Input | Expected result |
 |---|---|---|---|
-| MT-01 | `move_to` with valid servo targets and `within_ms` succeeds | `callTool('move_to', { within_ms: 500, s1: 120 })` | `isError` absent or false; servo position updated |
-| MT-02 | `move_to` with no servo targets returns an error | `callTool('move_to', { within_ms: 500 })` | `isError` is true; text contains `shift_to` or similar |
+| MT-01 | `move_to` with valid servo targets and `within_ms` succeeds | `callTool('move_to', { within_ms: 100, s1: 120 })` | `isError` absent or false; servo position updated |
+| MT-02 | `move_to` with no servo targets returns an error | `callTool('move_to', { within_ms: 100 })` | `isError` is true; text contains `s1–s5` |
 | MT-03 | `move_to` with `within_ms` ≤ 0 returns an error | `callTool('move_to', { within_ms: 0, s1: 120 })` | `isError` is true; text indicates invalid duration |
 
 ## Part III — MV: Motion tools
@@ -67,7 +67,8 @@
 | ER-01 | `move` with no servo args returns error | `callTool('move', {})` | `isError` is true; text contains `shift_to` |
 | ER-02 | `wait` with negative value returns error | `callTool('wait', { ms: -1 })` | `isError` is true; text contains `-1` |
 | ER-03 | `wait` with non-numeric string returns error | `callTool('wait', { ms: 'abc' })` | `isError` is true; text contains `abc` |
-| ER-04 | `openNova` rejection propagates as error | `openNova` mock rejects with `'port not found'`, `callTool('home', {})` | `isError` is true; text contains `port not found` |
+| ER-04 | unknown tool name returns an error | `callTool('fly', {})` | `isError` is true; text contains `fly` |
+| ER-05 | `openNova` rejection propagates as error | `openNova` mock rejects with `'port not found'`, `callTool('home', {})` | `isError` is true; text contains `port not found` |
 
 ## Part VI — DC: Disconnect tool
 

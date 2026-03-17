@@ -86,11 +86,12 @@ All tests inject `--port /dev/test` via `_setupForTests` and use a mocked `openN
 ### 1. `home`
 
 - **CMD-01** — `executeTokens(['home'])` calls `Nova.home()` and returns exit code 0
+- **CMD-01b** — `home --within-ms 500` calls `Nova.home(500)` and returns exit code 0
 
 ### 2. Individual servo commands (`shift-to`, `roll-to`, `pitch-to`, `rotate-to`, `lift-to`)
 
 - **CMD-02** — `shift-to 100` calls `Nova.shiftHeadTo(100)` and returns exit code 0
-- **CMD-02b** — `shift-to 100 --within-ms 500` calls `Nova.shiftHeadTo(100, 500)` and returns exit code 0
+- **CMD-02b** — `shift-to 100 --within-ms 800` calls `Nova.shiftHeadTo(100, 800)` and returns exit code 0
 - **CMD-03** — `roll-to 60` calls `Nova.rollHeadTo(60)` and returns exit code 0
 - **CMD-04** — `pitch-to 80` calls `Nova.pitchHeadTo(80)` and returns exit code 0
 - **CMD-05** — `rotate-to 120` calls `Nova.rotateBodyTo(120)` and returns exit code 0
@@ -100,7 +101,7 @@ All tests inject `--port /dev/test` via `_setupForTests` and use a mocked `openN
 
 - **CMD-07** — `move --shift-to 100` calls `Nova.moveTo({ s1:100 })` and returns exit code 0
 - **CMD-08** — `move --shift-to 100 --rotate-to 120` calls `Nova.moveTo({ s1:100, s4:120 })` and returns exit code 0
-- **CMD-08b** — `move --shift-to 100 --rotate-to 120 --within-ms 500` calls `Nova.moveTo({ s1:100, s4:120 }, 500)` and returns exit code 0
+- **CMD-08b** — `move --shift-to 100 --within-ms 600` calls `Nova.moveTo({ s1:100 }, 600)` and returns exit code 0
 - **CMD-09** — `move` without any servo option returns exit code 2 (UsageError)
 
 ### 4. `wait`

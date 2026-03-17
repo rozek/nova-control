@@ -277,6 +277,15 @@ npm run test:run
 
 Each package has its own `vitest.config.ts`, `TestPlan.md`, and `TestCases.md`.
 
+### Build order
+
+`nova-control-command` and `nova-control-mcp-server` both depend on the built output of `nova-control-node`. The root `build` script therefore runs the packages in two sequential tiers:
+
+1. `nova-control-browser` and `nova-control-node` (no intra-workspace dependencies)
+2. `nova-control-command` and `nova-control-mcp-server` (depend on `nova-control-node`)
+
+This ordering is encoded directly in the root `build` script, so `npm run build` always works correctly even after a full clean.
+
 ---
 
 ## License

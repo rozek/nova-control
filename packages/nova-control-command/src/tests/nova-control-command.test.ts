@@ -77,6 +77,12 @@ describe('servo commands (CMD)', () => {
     expect(Hoisted.MockNova.home).toHaveBeenCalledOnce()
   })
 
+  it('CMD-01b: home --within-ms passes the duration to Nova.home()', async () => {
+    const Code = await executeTokens(['home', '--within-ms', '500'])
+    expect(Code).toBe(0)
+    expect(Hoisted.MockNova.home).toHaveBeenCalledWith(500)
+  })
+
 /**** CMD-02 – CMD-06: individual servo commands ****/
 
   it('CMD-02: shift-to calls Nova.shiftHeadTo() with the given angle', async () => {
@@ -109,7 +115,7 @@ describe('servo commands (CMD)', () => {
     expect(Hoisted.MockNova.liftHeadTo).toHaveBeenCalledWith(90, undefined)
   })
 
-  it('CMD-06b: shift-to --within-ms passes the duration to Nova.shiftHeadTo()', async () => {
+  it('CMD-02b: shift-to --within-ms passes the duration to Nova.shiftHeadTo()', async () => {
     const Code = await executeTokens(['shift-to', '100', '--within-ms', '800'])
     expect(Code).toBe(0)
     expect(Hoisted.MockNova.shiftHeadTo).toHaveBeenCalledWith(100, 800)

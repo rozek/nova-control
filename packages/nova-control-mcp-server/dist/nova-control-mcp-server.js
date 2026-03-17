@@ -7,42 +7,43 @@ import { Server as i } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport as a } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport as o } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { CallToolRequestSchema as s, ListToolsRequestSchema as c } from "@modelcontextprotocol/sdk/types.js";
-import { SerialPort as l } from "serialport";
+import { z as l } from "zod";
+import { SerialPort as u } from "serialport";
 //#region ../nova-control-node/dist/nova-control-node.js
-var u = 9600, d = Object.freeze({
+var d = 9600, f = Object.freeze({
 	s1: 90,
 	s2: 90,
 	s3: 110,
 	s4: 90,
 	s5: 95
-}), f = Object.freeze({
+}), p = Object.freeze({
 	s1: [45, 135],
 	s2: [10, 170],
 	s3: [40, 150],
 	s4: [30, 180],
 	s5: [20, 150]
-}), p = Object.freeze({
-	s1: (f.s1[1] - f.s1[0]) / 1e3,
-	s2: (f.s2[1] - f.s2[0]) / 1e3,
-	s3: (f.s3[1] - f.s3[0]) / 1e3,
-	s4: (f.s4[1] - f.s4[0]) / 1e3,
-	s5: (f.s5[1] - f.s5[0]) / 1e3
+}), m = Object.freeze({
+	s1: (p.s1[1] - p.s1[0]) / 1e3,
+	s2: (p.s2[1] - p.s2[0]) / 1e3,
+	s3: (p.s3[1] - p.s3[0]) / 1e3,
+	s4: (p.s4[1] - p.s4[0]) / 1e3,
+	s5: (p.s5[1] - p.s5[0]) / 1e3
 });
-function m(e, t) {
-	let [n, r] = f[t];
+function h(e, t) {
+	let [n, r] = p[t];
 	return Math.max(n, Math.min(r, Math.round(e)));
 }
-function h(e) {
+function g(e) {
 	return new Uint8Array([
-		m(e.s4, "s4"),
-		m(e.s3, "s3"),
-		m(e.s2, "s2"),
-		m(e.s1, "s1"),
-		m(e.s5, "s5")
+		h(e.s4, "s4"),
+		h(e.s3, "s3"),
+		h(e.s2, "s2"),
+		h(e.s1, "s1"),
+		h(e.s5, "s5")
 	]);
 }
-async function g(e, t) {
-	let n = new l({
+async function _(e, t) {
+	let n = new u({
 		path: e,
 		baudRate: t,
 		autoOpen: !1
@@ -68,22 +69,22 @@ async function g(e, t) {
 		}
 	};
 }
-function _(e, t) {
+function v(e, t) {
 	let n = Math.min(.499, Math.max(0, t)), r = 1 / (1 - n);
 	if (e <= n) return r * e * e / (2 * n);
 	if (e <= 1 - n) return r * (e - n / 2);
 	let i = 1 - e;
 	return 1 - r * i * i / (2 * n);
 }
-async function v(e, t = u, n) {
-	let r = n?.StepIntervalMs ?? 20, i = n?.RampRatio ?? .25, a = await g(e, t), o = { ...d }, s, c = Promise.resolve();
+async function y(e, t = d, n) {
+	let r = n?.StepIntervalMs ?? 20, i = n?.RampRatio ?? .25, a = await _(e, t), o = { ...f }, s, c = Promise.resolve();
 	function l(e) {
 		s = {
 			...s ?? o,
 			...e
 		};
 	}
-	async function f() {
+	async function u() {
 		let e = c;
 		c = (async () => {
 			try {
@@ -98,14 +99,14 @@ async function v(e, t = u, n) {
 					"s4",
 					"s5"
 				]) {
-					let a = e[i] - o[i], s = r > 0 ? p[i] * r : Infinity;
+					let a = e[i] - o[i], s = r > 0 ? m[i] * r : Infinity;
 					Math.abs(a) > s ? (n[i] = o[i] + Math.sign(a) * s, t = !1) : n[i] = e[i];
 				}
-				t && (s = void 0), o = { ...n }, await a.write(h(n)), t || await new Promise((e) => setTimeout(e, r));
+				t && (s = void 0), o = { ...n }, await a.write(g(n)), t || await new Promise((e) => setTimeout(e, r));
 			}
 		})(), await c;
 	}
-	async function m(e, t) {
+	async function p(e, t) {
 		let n = c;
 		c = (async () => {
 			try {
@@ -114,33 +115,33 @@ async function v(e, t = u, n) {
 			let c = { ...o }, l = r > 0 ? Math.max(1, Math.round(t / r)) : 1;
 			s = void 0;
 			for (let t = 1; t <= l; t++) {
-				let n = _(t / l, i), s = { ...o };
+				let n = v(t / l, i), s = { ...o };
 				for (let t of Object.keys(e)) s[t] = Math.round(c[t] + (e[t] - c[t]) * n);
-				o = s, await a.write(h(s)), t < l && await new Promise((e) => setTimeout(e, r));
+				o = s, await a.write(g(s)), t < l && await new Promise((e) => setTimeout(e, r));
 			}
 		})(), await c;
 	}
 	return {
 		async home(e) {
-			e != null && e > 0 ? await m({ ...d }, e) : (l({ ...d }), await f());
+			e != null && e > 0 ? await p({ ...f }, e) : (l({ ...f }), await u());
 		},
 		async shiftHeadTo(e, t) {
-			t != null && t > 0 ? await m({ s1: e }, t) : (l({ s1: e }), await f());
+			t != null && t > 0 ? await p({ s1: e }, t) : (l({ s1: e }), await u());
 		},
 		async rollHeadTo(e, t) {
-			t != null && t > 0 ? await m({ s2: e }, t) : (l({ s2: e }), await f());
+			t != null && t > 0 ? await p({ s2: e }, t) : (l({ s2: e }), await u());
 		},
 		async pitchHeadTo(e, t) {
-			t != null && t > 0 ? await m({ s3: e }, t) : (l({ s3: e }), await f());
+			t != null && t > 0 ? await p({ s3: e }, t) : (l({ s3: e }), await u());
 		},
 		async liftHeadTo(e, t) {
-			t != null && t > 0 ? await m({ s5: e }, t) : (l({ s5: e }), await f());
+			t != null && t > 0 ? await p({ s5: e }, t) : (l({ s5: e }), await u());
 		},
 		async rotateBodyTo(e, t) {
-			t != null && t > 0 ? await m({ s4: e }, t) : (l({ s4: e }), await f());
+			t != null && t > 0 ? await p({ s4: e }, t) : (l({ s4: e }), await u());
 		},
 		async moveTo(e, t) {
-			t != null && t > 0 ? await m(e, t) : (l(e), await f());
+			t != null && t > 0 ? await p(e, t) : (l(e), await u());
 		},
 		get State() {
 			return structuredClone(s ?? o);
@@ -152,14 +153,14 @@ async function v(e, t = u, n) {
 			};
 		},
 		async sendServoState() {
-			await f();
+			await u();
 		},
 		destroy() {
 			a.destroy();
 		}
 	};
 }
-async function y(e, t) {
+async function b(e, t) {
 	let n = t.split("\n");
 	for (let t = 0; t < n.length; t++) {
 		let r = n[t].trim(), i = t + 1;
@@ -257,7 +258,7 @@ async function y(e, t) {
 }
 //#endregion
 //#region src/nova-control-mcp-server.ts
-function b() {
+function x() {
 	try {
 		let { values: e } = r({
 			args: process.argv.slice(2),
@@ -294,20 +295,20 @@ function b() {
 		process.stderr.write(`nova-control-mcp: ${e.message ?? e}\n`), process.exit(1);
 	}
 }
-var x = "", S = 9600, C;
-async function w() {
-	return C ??= await v(x, S), C;
+var S = "", C = 9600, w;
+async function T() {
+	return w ??= await y(S, C), w;
 }
-function T() {
-	C != null && (C.destroy(), C = void 0);
+function E() {
+	w != null && (w.destroy(), w = void 0);
 }
-function E(e, t = 9600) {
-	x = e, S = t;
+function D(e, t = 9600) {
+	S = e, C = t;
 }
-function D() {
-	T(), x = "", S = 9600;
+function O() {
+	E(), S = "", C = 9600;
 }
-var O = [
+var k = [
 	{
 		name: "home",
 		description: "send all servos to their home positions — pass within_ms for smooth, fluid motion with automatic velocity ramp-up and ramp-down; without within_ms the robot moves at constant maximum speed",
@@ -498,7 +499,7 @@ var O = [
 	},
 	{
 		name: "run_script",
-		description: "execute a multi-line movement script — one command per line; blank lines and lines starting with # are ignored; commands: home | shift-to <angle> | roll-to <angle> | pitch-to <angle> | rotate-to <angle> | lift-to <angle> | move [shift-to <angle>] [roll-to <angle>] [pitch-to <angle>] [rotate-to <angle>] [lift-to <angle>] | wait <ms>",
+		description: "execute a multi-line movement script — one command per line; blank lines and lines starting with # are ignored; each command is fully awaited before the next begins; commands: home [<within_ms>] | shift-to <angle> [<within_ms>] | roll-to <angle> [<within_ms>] | pitch-to <angle> [<within_ms>] | rotate-to <angle> [<within_ms>] | lift-to <angle> [<within_ms>] | move [shift-to <angle>] [roll-to <angle>] [pitch-to <angle>] [rotate-to <angle>] [lift-to <angle>] [within-ms <ms>] | wait <ms>",
 		inputSchema: {
 			type: "object",
 			properties: { script: {
@@ -516,105 +517,134 @@ var O = [
 			properties: {}
 		}
 	}
-];
-async function k(e) {
-	let t = e.within_ms == null ? void 0 : Number(e.within_ms);
-	return await (await w()).home(t), "all servos moved to home positions";
+], A = l.number().finite(), j = l.number().positive(), M = l.object({ within_ms: j.optional() }), N = l.object({
+	angle: A,
+	within_ms: j.optional()
+}), P = l.object({
+	shift_to: A.optional(),
+	roll_to: A.optional(),
+	pitch_to: A.optional(),
+	rotate_to: A.optional(),
+	lift_to: A.optional(),
+	within_ms: j.optional()
+}).superRefine((e, t) => {
+	e.shift_to == null && e.roll_to == null && e.pitch_to == null && e.rotate_to == null && e.lift_to == null && t.addIssue({
+		code: l.ZodIssueCode.custom,
+		message: "move: at least one of shift_to, roll_to, pitch_to, rotate_to, lift_to is required"
+	});
+}), F = l.object({
+	within_ms: j,
+	s1: A.optional(),
+	s2: A.optional(),
+	s3: A.optional(),
+	s4: A.optional(),
+	s5: A.optional()
+}).superRefine((e, t) => {
+	e.s1 == null && e.s2 == null && e.s3 == null && e.s4 == null && e.s5 == null && t.addIssue({
+		code: l.ZodIssueCode.custom,
+		message: "move_to: at least one servo target (s1–s5) must be specified"
+	});
+}), I = l.object({ ms: l.number().finite().nonnegative() }), L = l.object({ script: l.string() });
+function R(e) {
+	return e.issues.map((e) => `${e.path.length > 0 ? `${e.path.join(".")}: ` : ""}${e.message}`).join("; ");
 }
-async function A(e) {
-	let t = {};
-	if (e.shift_to != null && (t.s1 = Number(e.shift_to)), e.roll_to != null && (t.s2 = Number(e.roll_to)), e.pitch_to != null && (t.s3 = Number(e.pitch_to)), e.rotate_to != null && (t.s4 = Number(e.rotate_to)), e.lift_to != null && (t.s5 = Number(e.lift_to)), Object.keys(t).length === 0) throw Error("move: at least one of shift_to, roll_to, pitch_to, rotate_to, lift_to is required");
-	let n = e.within_ms == null ? void 0 : Number(e.within_ms);
-	return await (await w()).moveTo(t, n), `servos updated: ${JSON.stringify(t)}`;
-}
-async function j(e) {
-	let t = Number(e.angle), n = e.within_ms == null ? void 0 : Number(e.within_ms);
-	return await (await w()).shiftHeadTo(t, n), `s1 (shift) → ${t}°`;
-}
-async function M(e) {
-	let t = Number(e.angle), n = e.within_ms == null ? void 0 : Number(e.within_ms);
-	return await (await w()).rollHeadTo(t, n), `s2 (roll) → ${t}°`;
-}
-async function N(e) {
-	let t = Number(e.angle), n = e.within_ms == null ? void 0 : Number(e.within_ms);
-	return await (await w()).pitchHeadTo(t, n), `s3 (pitch) → ${t}°`;
-}
-async function P(e) {
-	let t = Number(e.angle), n = e.within_ms == null ? void 0 : Number(e.within_ms);
-	return await (await w()).rotateBodyTo(t, n), `s4 (rotate) → ${t}°`;
-}
-async function F(e) {
-	let t = Number(e.angle), n = e.within_ms == null ? void 0 : Number(e.within_ms);
-	return await (await w()).liftHeadTo(t, n), `s5 (lift) → ${t}°`;
-}
-async function I() {
-	return C == null ? "not connected" : (T(), "disconnected");
-}
-async function L(e) {
-	let t = Number(e.within_ms);
-	if (isNaN(t) || t <= 0) throw Error("move_to: within_ms must be a positive number");
-	let n = {};
-	if (e.s1 != null && (n.s1 = Number(e.s1)), e.s2 != null && (n.s2 = Number(e.s2)), e.s3 != null && (n.s3 = Number(e.s3)), e.s4 != null && (n.s4 = Number(e.s4)), e.s5 != null && (n.s5 = Number(e.s5)), Object.keys(n).length === 0) throw Error("move_to: at least one servo target (s1–s5) must be specified");
-	return await (await w()).moveTo(n, t), "move completed";
-}
-async function R(e) {
-	let t = Number(e.ms);
-	if (isNaN(t) || t < 0) throw Error(`wait: invalid duration '${e.ms}' — expected a non-negative number`);
-	return await new Promise((e) => setTimeout(e, t)), `waited ${t} ms`;
-}
-async function z() {
-	let e = await w();
-	return JSON.stringify(e.State);
+async function z(e) {
+	let { within_ms: t } = M.parse(e);
+	return await (await T()).home(t), "all servos moved to home positions";
 }
 async function B(e) {
-	let t = String(e.script ?? "");
-	return await y(await w(), t), "script executed successfully";
+	let t = P.parse(e), n = {};
+	return t.shift_to != null && (n.s1 = t.shift_to), t.roll_to != null && (n.s2 = t.roll_to), t.pitch_to != null && (n.s3 = t.pitch_to), t.rotate_to != null && (n.s4 = t.rotate_to), t.lift_to != null && (n.s5 = t.lift_to), await (await T()).moveTo(n, t.within_ms), `servos updated: ${JSON.stringify(n)}`;
 }
-function V() {
+async function V(e) {
+	let { angle: t, within_ms: n } = N.parse(e);
+	return await (await T()).shiftHeadTo(t, n), `s1 (shift) → ${t}°`;
+}
+async function H(e) {
+	let { angle: t, within_ms: n } = N.parse(e);
+	return await (await T()).rollHeadTo(t, n), `s2 (roll) → ${t}°`;
+}
+async function U(e) {
+	let { angle: t, within_ms: n } = N.parse(e);
+	return await (await T()).pitchHeadTo(t, n), `s3 (pitch) → ${t}°`;
+}
+async function W(e) {
+	let { angle: t, within_ms: n } = N.parse(e);
+	return await (await T()).rotateBodyTo(t, n), `s4 (rotate) → ${t}°`;
+}
+async function G(e) {
+	let { angle: t, within_ms: n } = N.parse(e);
+	return await (await T()).liftHeadTo(t, n), `s5 (lift) → ${t}°`;
+}
+async function K() {
+	return w == null ? "not connected" : (E(), "disconnected");
+}
+async function q(e) {
+	let t = F.parse(e), n = {};
+	return t.s1 != null && (n.s1 = t.s1), t.s2 != null && (n.s2 = t.s2), t.s3 != null && (n.s3 = t.s3), t.s4 != null && (n.s4 = t.s4), t.s5 != null && (n.s5 = t.s5), await (await T()).moveTo(n, t.within_ms), "move completed";
+}
+async function J(e) {
+	let t;
+	try {
+		t = I.parse(e);
+	} catch {
+		throw Error(`wait: invalid duration '${e.ms}' — expected a non-negative number`);
+	}
+	return await new Promise((e) => setTimeout(e, t.ms)), `waited ${t.ms} ms`;
+}
+async function Y() {
+	let e = await T();
+	return JSON.stringify(e.State);
+}
+async function X(e) {
+	let { script: t } = L.parse(e);
+	return await b(await T(), t), "script executed successfully";
+}
+function Z() {
 	let e = new i({
 		name: "nova-control-mcp-server",
 		version: "0.0.8"
 	}, { capabilities: { tools: {} } });
-	return e.setRequestHandler(c, async () => ({ tools: O })), e.setRequestHandler(s, async (e) => {
+	return e.setRequestHandler(c, async () => ({ tools: k })), e.setRequestHandler(s, async (e) => {
 		let t = e.params.name, n = e.params.arguments ?? {};
 		try {
 			let e;
 			switch (t) {
 				case "home":
-					e = await k(n);
+					e = await z(n);
 					break;
 				case "move":
-					e = await A(n);
-					break;
-				case "shift_to":
-					e = await j(n);
-					break;
-				case "roll_to":
-					e = await M(n);
-					break;
-				case "pitch_to":
-					e = await N(n);
-					break;
-				case "rotate_to":
-					e = await P(n);
-					break;
-				case "lift_to":
-					e = await F(n);
-					break;
-				case "move_to":
-					e = await L(n);
-					break;
-				case "wait":
-					e = await R(n);
-					break;
-				case "get_state":
-					e = await z();
-					break;
-				case "run_script":
 					e = await B(n);
 					break;
+				case "shift_to":
+					e = await V(n);
+					break;
+				case "roll_to":
+					e = await H(n);
+					break;
+				case "pitch_to":
+					e = await U(n);
+					break;
+				case "rotate_to":
+					e = await W(n);
+					break;
+				case "lift_to":
+					e = await G(n);
+					break;
+				case "move_to":
+					e = await q(n);
+					break;
+				case "wait":
+					e = await J(n);
+					break;
+				case "get_state":
+					e = await Y();
+					break;
+				case "run_script":
+					e = await X(n);
+					break;
 				case "disconnect":
-					e = await I();
+					e = await K();
 					break;
 				default: return {
 					content: [{
@@ -632,21 +662,21 @@ function V() {
 			return {
 				content: [{
 					type: "text",
-					text: e instanceof Error ? e.message : String(e)
+					text: e instanceof l.ZodError ? R(e) : e instanceof Error ? e.message : String(e)
 				}],
 				isError: !0
 			};
 		}
 	}), e;
 }
-async function H(e) {
+async function Q(e) {
 	let t = new a();
 	await e.connect(t);
 	for (let e of ["SIGINT", "SIGTERM"]) process.on(e, () => {
-		T(), process.exit(0);
+		E(), process.exit(0);
 	});
 }
-async function U(e, t) {
+async function $(e, t) {
 	let r = new o({ sessionIdGenerator: void 0 });
 	await e.connect(r);
 	let i = n(async (e, t) => {
@@ -658,17 +688,17 @@ async function U(e, t) {
 		}), i.once("error", n);
 	});
 	for (let e of ["SIGINT", "SIGTERM"]) process.on(e, async () => {
-		await r.close(), i.close(), T(), process.exit(0);
+		await r.close(), i.close(), E(), process.exit(0);
 	});
 }
-async function W() {
-	let { Port: e, BaudRate: t, Transport: n, ListenPort: r } = b();
-	x = e, S = t;
-	let i = V();
-	n === "http" ? await U(i, r) : await H(i);
+async function ee() {
+	let { Port: e, BaudRate: t, Transport: n, ListenPort: r } = x();
+	S = e, C = t;
+	let i = Z();
+	n === "http" ? await $(i, r) : await Q(i);
 }
-t(process.argv[1]) === e(import.meta.url) && W().catch((e) => {
+t(process.argv[1]) === e(import.meta.url) && ee().catch((e) => {
 	process.stderr.write(`nova-control-mcp: fatal: ${e.message ?? e}\n`), process.exit(1);
 });
 //#endregion
-export { D as _destroyForTests, E as _setupForTests, V as createServer };
+export { O as _destroyForTests, D as _setupForTests, Z as createServer };

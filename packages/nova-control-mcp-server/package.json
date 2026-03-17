@@ -1,7 +1,7 @@
 {
   "name": "nova-control-mcp-server",
   "description": "MCP server for controlling a NOVA DIY Artificial Intelligence Robot by Creoqode",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "type": "module",
   "keywords": [
     "nova",
@@ -22,7 +22,7 @@
   },
   "license": "MIT",
   "bin": {
-    "nova-control-mcp":        "./dist/nova-control-mcp-server.js",
+    "nova-control-mcp": "./dist/nova-control-mcp-server.js",
     "nova-control-mcp-server": "./dist/nova-control-mcp-server.js"
   },
   "files": [
@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "nova-control-node": "*"
+    "nova-control-node": "*",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

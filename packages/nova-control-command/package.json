@@ -1,7 +1,7 @@
 {
   "name": "nova-control-command",
   "description": "CLI for controlling a NOVA DIY Artificial Intelligence Robot by Creoqode",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "type": "module",
   "keywords": [
     "nova",
@@ -21,7 +21,7 @@
   },
   "license": "MIT",
   "bin": {
-    "nova-control":         "./dist/nova-control-command.js",
+    "nova-control": "./dist/nova-control-command.js",
     "nova-control-command": "./dist/nova-control-command.js"
   },
   "files": [
@@ -33,13 +33,14 @@
     "test:run": "vitest run"
   },
   "dependencies": {
-    "commander":         "^12.0.0",
-    "nova-control-node": "*"
+    "commander": "^12.0.0",
+    "nova-control-node": "*",
+    "zod": "^4.3.6"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "typescript":  "^5.9.3",
-    "vite":        "^8.0.0",
-    "vitest":      "^4.1.0"
+    "typescript": "^5.9.3",
+    "vite": "^8.0.0",
+    "vitest": "^4.1.0"
   }
 }
