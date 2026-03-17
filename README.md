@@ -8,7 +8,7 @@ Control a [Creoqode Nova DIY AI Robot](https://www.kickstarter.com/projects/creo
 
 This monorepo contains four npm packages and one Arduino sketch:
 
-| Package | Target | Remarks |
+| package | target | what it does |
 | --- | --- | --- |
 | [`nova-control-browser`](packages/nova-control-browser/README.md) | browser | Web Serial API — Chrome / Edge 89+ |
 | [`nova-control-node`](packages/nova-control-node/README.md) | Node.js | `serialport` package — any OS |
@@ -113,13 +113,13 @@ The API is otherwise identical to `nova-control-browser`.
 
 | method / accessor | description |
 | --- | --- |
-| `home()` | moves all servos to `HomePosition` |
-| `shiftHeadTo(deg)` | s1 — head forward / back |
-| `rollHeadTo(deg)` | s2 — head CW / CCW |
-| `pitchHeadTo(deg)` | s3 — head up / down |
-| `rotateBodyTo(deg)` | s4 — body Z-axis rotation |
+| `home(withinMS?)` | moves all servos to `HomePosition` |
+| `shiftHeadTo(angle, withinMS?)` | s1 — head forward / back |
+| `rollHeadTo(angle, withinMS?)` | s2 — head CW / CCW |
+| `pitchHeadTo(angle, withinMS?)` | s3 — head up / down |
+| `rotateBodyTo(angle, withinMS?)` | s4 — body Z-axis rotation |
 | `moveTo(Target, withinMS?)` | moves the servos in `Target` to their angles; with `withinMS`, uses a trapezoidal ramp profile |
-| `liftHeadTo(deg)` | s5 — secondary head axis (20–150°) |
+| `liftHeadTo(angle, withinMS?)` | s5 — secondary head axis (20–150°) |
 | `get State` | returns a deep copy of the current or pending state |
 | `set State(update)` | replaces the pending update; starts fresh from last-sent |
 | `sendServoState()` | flushes the pending state as a single packet |
@@ -164,11 +164,11 @@ npx nova-control-command --port /dev/ttyACM0 shell
 | command | arguments / options | description |
 | --- | --- | --- |
 | `home` | — | send all servos to home positions |
-| `shift-to <deg>` | — | s1: head forward / back |
-| `roll-to <deg>` | — | s2: head CW / CCW |
-| `pitch-to <deg>` | — | s3: head up / down |
-| `rotate-to <deg>` | — | s4: body Z-axis |
-| `lift-to <deg>` | — | s5: secondary head axis |
+| `shift-to <angle>` | — | s1: head forward / back |
+| `roll-to <angle>` | — | s2: head CW / CCW |
+| `pitch-to <angle>` | — | s3: head up / down |
+| `rotate-to <angle>` | — | s4: body Z-axis |
+| `lift-to <angle>` | — | s5: secondary head axis |
 | `move` | `--shift-to`, `--roll-to`, `--pitch-to`, `--rotate-to`, `--lift-to` | set one or more servos in one packet |
 | `wait <ms>` | — | pause for the given number of milliseconds |
 | `state` | — | print the current servo state as JSON |
@@ -210,19 +210,22 @@ Or add to your MCP client configuration (e.g. Claude Desktop `claude_desktop_con
 
 ### MCP tools
 
+All movement tools accept an optional `within_ms` parameter for smooth trapezoidal motion (ramp-up → constant speed → ramp-down). Without it, servos move at constant maximum speed.
+
 | tool | arguments | description |
 | --- | --- | --- |
-| `home` | — | move all servos to home positions |
-| `shift_to` | `degrees: number` | s1: head forward / back |
-| `roll_to` | `degrees: number` | s2: head CW / CCW |
-| `pitch_to` | `degrees: number` | s3: head up / down |
-| `rotate_to` | `degrees: number` | s4: body Z-axis rotation |
-| `lift_to` | `degrees: number` | s5: secondary head axis (20–150°) |
-| `move` | `s1?`, `s2?`, `s3?`, `s4?`, `s5?` (all optional `number`) | set one or more servos in one packet |
-| `move_to` | `within_ms: number`, `s1?`, `s2?`, `s3?`, `s4?`, `s5?` (all optional `number`) | move one or more servos to target positions in exactly `within_ms` ms, with trapezoidal ramp-up/ramp-down |
+| `home` | `within_ms?` | move all servos to home positions |
+| `shift_to` | `angle: number`; `within_ms?` | s1: head forward / back |
+| `roll_to` | `angle: number`; `within_ms?` | s2: head CW / CCW |
+| `pitch_to` | `angle: number`; `within_ms?` | s3: head up / down |
+| `rotate_to` | `angle: number`; `within_ms?` | s4: body Z-axis rotation |
+| `lift_to` | `angle: number`; `within_ms?` | s5: secondary head axis (20–150°) |
+| `move` | `shift_to?`, `roll_to?`, `pitch_to?`, `rotate_to?`, `lift_to?` (at least one required); `within_ms?` | set one or more servos atomically |
+| `move_to` | `within_ms: number` (required, > 0); `s1?`, `s2?`, `s3?`, `s4?`, `s5?` | move one or more servos smoothly to target positions |
 | `wait` | `ms: number` | pause for the given number of milliseconds |
 | `get_state` | — | return the current servo state as JSON |
 | `run_script` | `script: string` | execute a multi-line movement script (one command per line; blank lines and `#`-comments ignored) |
+| `disconnect` | — | close the serial connection; reopens automatically on the next command |
 
 ### CLI options
 

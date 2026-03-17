@@ -23,6 +23,11 @@ const Hoisted = vi.hoisted(() => {
 
   const MockNova = {
     home:           vi.fn().mockResolvedValue(undefined),
+    shiftHeadTo:    vi.fn().mockResolvedValue(undefined),
+    rollHeadTo:     vi.fn().mockResolvedValue(undefined),
+    pitchHeadTo:    vi.fn().mockResolvedValue(undefined),
+    rotateBodyTo:   vi.fn().mockResolvedValue(undefined),
+    liftHeadTo:     vi.fn().mockResolvedValue(undefined),
     moveTo:         vi.fn().mockResolvedValue(undefined),
     sendServoState: vi.fn().mockResolvedValue(undefined),
     destroy:        vi.fn(),
@@ -142,14 +147,14 @@ describe('server handshake (SH)', () => {
 
 /**** SH-02: tools/list returns all eleven expected tool names ****/
 
-  it('SH-02: tools/list returns all eleven expected tool names', async () => {
+  it('SH-02: tools/list returns all twelve expected tool names', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const { tools } = await McpClient.listTools()
       const Names = tools.map((T) => T.name).sort()
       expect(Names).toEqual([
-        'get_state', 'home', 'lift_to', 'move', 'move_to', 'pitch_to',
-        'roll_to', 'rotate_to', 'run_script', 'shift_to', 'wait',
+        'disconnect', 'get_state', 'home', 'lift_to', 'move', 'move_to',
+        'pitch_to', 'roll_to', 'rotate_to', 'run_script', 'shift_to', 'wait',
       ])
     } finally { await disconnect() }
   })
@@ -171,75 +176,68 @@ describe('motion tools (MV)', () => {
 
 /**** MV-02 – MV-06: individual servo commands ****/
 
-  it('MV-02: shift_to sets s1 and calls sendServoState()', async () => {
+  it('MV-02: shift_to calls Nova.shiftHeadTo() with the given angle', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const Result = await callTool(McpClient, 'shift_to', { angle:100 })
       expect(isErrorResult(Result)).toBe(false)
-      expect(Hoisted.LastStateUpdate).toEqual({ s1:100 })
-      expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+      expect(Hoisted.MockNova.shiftHeadTo).toHaveBeenCalledWith(100, undefined)
     } finally { await disconnect() }
   })
 
-  it('MV-03: roll_to sets s2 and calls sendServoState()', async () => {
+  it('MV-03: roll_to calls Nova.rollHeadTo() with the given angle', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const Result = await callTool(McpClient, 'roll_to', { angle:60 })
       expect(isErrorResult(Result)).toBe(false)
-      expect(Hoisted.LastStateUpdate).toEqual({ s2:60 })
-      expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+      expect(Hoisted.MockNova.rollHeadTo).toHaveBeenCalledWith(60, undefined)
     } finally { await disconnect() }
   })
 
-  it('MV-04: pitch_to sets s3 and calls sendServoState()', async () => {
+  it('MV-04: pitch_to calls Nova.pitchHeadTo() with the given angle', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const Result = await callTool(McpClient, 'pitch_to', { angle:80 })
       expect(isErrorResult(Result)).toBe(false)
-      expect(Hoisted.LastStateUpdate).toEqual({ s3:80 })
-      expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+      expect(Hoisted.MockNova.pitchHeadTo).toHaveBeenCalledWith(80, undefined)
     } finally { await disconnect() }
   })
 
-  it('MV-05: rotate_to sets s4 and calls sendServoState()', async () => {
+  it('MV-05: rotate_to calls Nova.rotateBodyTo() with the given angle', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const Result = await callTool(McpClient, 'rotate_to', { angle:120 })
       expect(isErrorResult(Result)).toBe(false)
-      expect(Hoisted.LastStateUpdate).toEqual({ s4:120 })
-      expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+      expect(Hoisted.MockNova.rotateBodyTo).toHaveBeenCalledWith(120, undefined)
     } finally { await disconnect() }
   })
 
-  it('MV-06: lift_to sets s5 and calls sendServoState()', async () => {
+  it('MV-06: lift_to calls Nova.liftHeadTo() with the given angle', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const Result = await callTool(McpClient, 'lift_to', { angle:30 })
       expect(isErrorResult(Result)).toBe(false)
-      expect(Hoisted.LastStateUpdate).toEqual({ s5:30 })
-      expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+      expect(Hoisted.MockNova.liftHeadTo).toHaveBeenCalledWith(30, undefined)
     } finally { await disconnect() }
   })
 
 /**** MV-07 – MV-08: move ****/
 
-  it('MV-07: move with one servo arg sets that servo atomically', async () => {
+  it('MV-07: move with one servo arg calls Nova.moveTo() with that servo', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const Result = await callTool(McpClient, 'move', { shift_to:100 })
       expect(isErrorResult(Result)).toBe(false)
-      expect(Hoisted.LastStateUpdate).toEqual({ s1:100 })
-      expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+      expect(Hoisted.MockNova.moveTo).toHaveBeenCalledWith({ s1:100 }, undefined)
     } finally { await disconnect() }
   })
 
-  it('MV-08: move with two servo args sets both in one packet', async () => {
+  it('MV-08: move with two servo args calls Nova.moveTo() with both servos', async () => {
     const { McpClient, disconnect } = await makeConnectedPair()
     try {
       const Result = await callTool(McpClient, 'move', { shift_to:100, rotate_to:120 })
       expect(isErrorResult(Result)).toBe(false)
-      expect(Hoisted.LastStateUpdate).toEqual({ s1:100, s4:120 })
-      expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+      expect(Hoisted.MockNova.moveTo).toHaveBeenCalledWith({ s1:100, s4:120 }, undefined)
     } finally { await disconnect() }
   })
 
@@ -324,6 +322,49 @@ describe('script tool (SC)', () => {
       const Result = await callTool(McpClient, 'run_script', { script:'bad' })
       expect(isErrorResult(Result)).toBe(true)
       expect(firstText(Result)).toContain('line 1')
+    } finally { await disconnect() }
+  })
+
+})
+
+describe('move_to additional (MT)', () => {
+
+/**** MT-03: move_to with within_ms ≤ 0 returns isError=true ****/
+
+  it('MT-03: move_to with within_ms of 0 returns isError=true', async () => {
+    const { McpClient, disconnect } = await makeConnectedPair()
+    try {
+      const Result = await callTool(McpClient, 'move_to', { within_ms:0, s1:120 })
+      expect(isErrorResult(Result)).toBe(true)
+      expect(firstText(Result)).toContain('within_ms')
+    } finally { await disconnect() }
+  })
+
+})
+
+describe('disconnect tool (DC)', () => {
+
+/**** DC-01: disconnect when connected calls destroyController and returns success ****/
+
+  it('DC-01: disconnect when connected closes the connection and returns success', async () => {
+    const { McpClient, disconnect } = await makeConnectedPair()
+    try {
+      // trigger a connection first so _ActiveNova is set
+      await callTool(McpClient, 'home')
+      const Result = await callTool(McpClient, 'disconnect')
+      expect(isErrorResult(Result)).toBe(false)
+      expect(firstText(Result)).toContain('disconnected')
+    } finally { await disconnect() }
+  })
+
+/**** DC-02: disconnect when not connected returns 'not connected' without error ****/
+
+  it('DC-02: disconnect when not connected returns not-connected message without error', async () => {
+    const { McpClient, disconnect } = await makeConnectedPair()
+    try {
+      const Result = await callTool(McpClient, 'disconnect')
+      expect(isErrorResult(Result)).toBe(false)
+      expect(firstText(Result)).toContain('not connected')
     } finally { await disconnect() }
   })
 

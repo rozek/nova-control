@@ -5,7 +5,7 @@
 | ID | Description | Input | Expected result |
 |---|---|---|---|
 | SH-01 | server connects without error | `InMemoryTransport` pair, `createServer().connect(serverTransport)`, `client.connect(clientTransport)` | no exception thrown |
-| SH-02 | `tools/list` returns all eleven tools | `client.listTools()` | result contains exactly the names `home`, `move`, `move_to`, `shift_to`, `roll_to`, `pitch_to`, `rotate_to`, `lift_to`, `wait`, `get_state`, `run_script` |
+| SH-02 | `tools/list` returns all twelve tools | `client.listTools()` | result contains exactly the names `disconnect`, `get_state`, `home`, `lift_to`, `move`, `move_to`, `pitch_to`, `roll_to`, `rotate_to`, `run_script`, `shift_to`, `wait` |
 
 ## Part II — MT: Move-To Tool
 
@@ -27,18 +27,18 @@
 
 | ID | Description | Input | Expected result |
 |---|---|---|---|
-| MV-02 | `shift_to` sets s1 and calls `sendServoState` | `callTool('shift_to', { deg: 100 })` | `LastStateUpdate` equals `{ s1: 100 }`; `sendServoState` called once |
-| MV-03 | `roll_to` sets s2 | `callTool('roll_to', { deg: 60 })` | `LastStateUpdate` equals `{ s2: 60 }` |
-| MV-04 | `pitch_to` sets s3 | `callTool('pitch_to', { deg: 80 })` | `LastStateUpdate` equals `{ s3: 80 }` |
-| MV-05 | `rotate_to` sets s4 | `callTool('rotate_to', { deg: 120 })` | `LastStateUpdate` equals `{ s4: 120 }` |
-| MV-06 | `lift_to` sets s5 | `callTool('lift_to', { deg: 30 })` | `LastStateUpdate` equals `{ s5: 30 }` |
+| MV-02 | `shift_to` calls `Nova.shiftHeadTo()` with the given angle | `callTool('shift_to', { angle: 100 })` | `isError` absent or false; `MockNova.shiftHeadTo` called with `(100, undefined)` |
+| MV-03 | `roll_to` calls `Nova.rollHeadTo()` | `callTool('roll_to', { angle: 60 })` | `isError` absent or false; `MockNova.rollHeadTo` called with `(60, undefined)` |
+| MV-04 | `pitch_to` calls `Nova.pitchHeadTo()` | `callTool('pitch_to', { angle: 80 })` | `isError` absent or false; `MockNova.pitchHeadTo` called with `(80, undefined)` |
+| MV-05 | `rotate_to` calls `Nova.rotateBodyTo()` | `callTool('rotate_to', { angle: 120 })` | `isError` absent or false; `MockNova.rotateBodyTo` called with `(120, undefined)` |
+| MV-06 | `lift_to` calls `Nova.liftHeadTo()` | `callTool('lift_to', { angle: 30 })` | `isError` absent or false; `MockNova.liftHeadTo` called with `(30, undefined)` |
 
 ### MV-move (Part III)
 
 | ID | Description | Input | Expected result |
 |---|---|---|---|
-| MV-07 | `move` with one servo sets that servo | `callTool('move', { shift_to: 100 })` | `LastStateUpdate` equals `{ s1: 100 }`; `sendServoState` called once |
-| MV-08 | `move` with two servos sets both atomically | `callTool('move', { shift_to: 100, rotate_to: 120 })` | `LastStateUpdate` equals `{ s1: 100, s4: 120 }`; `sendServoState` called once |
+| MV-07 | `move` with one servo calls `Nova.moveTo()` with that servo | `callTool('move', { shift_to: 100 })` | `isError` absent or false; `MockNova.moveTo` called with `({ s1: 100 }, undefined)` |
+| MV-08 | `move` with two servos calls `Nova.moveTo()` with both | `callTool('move', { shift_to: 100, rotate_to: 120 })` | `isError` absent or false; `MockNova.moveTo` called with `({ s1: 100, s4: 120 }, undefined)` |
 
 ### MV-wait (Part III)
 
@@ -69,7 +69,14 @@
 | ER-03 | `wait` with non-numeric string returns error | `callTool('wait', { ms: 'abc' })` | `isError` is true; text contains `abc` |
 | ER-04 | `openNova` rejection propagates as error | `openNova` mock rejects with `'port not found'`, `callTool('home', {})` | `isError` is true; text contains `port not found` |
 
-## Part VI — HT: HTTP transport (manual smoke-test only)
+## Part VI — DC: Disconnect tool
+
+| ID | Description | Input | Expected result |
+|---|---|---|---|
+| DC-01 | `disconnect` when connected closes the connection and returns success | call `home` first to open connection, then `callTool('disconnect', {})` | `isError` absent or false; text contains `disconnected` |
+| DC-02 | `disconnect` when not connected returns not-connected message without error | `callTool('disconnect', {})` without prior call | `isError` absent or false; text contains `not connected` |
+
+## Part VII — HT: HTTP transport (manual smoke-test only)
 
 The HTTP transport wraps the already-tested `createServer()` with a standard Node.js HTTP server and `StreamableHTTPServerTransport` (stateless mode). It is not covered by automated tests because it requires a live TCP socket. The correctness of the MCP layer is fully verified by Parts I–III.
 

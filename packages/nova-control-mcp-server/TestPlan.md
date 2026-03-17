@@ -23,7 +23,7 @@ The server is tested end-to-end through the MCP protocol using the SDK's `InMemo
 Verifies that the server starts correctly and advertises its capabilities.
 
 - connects via `InMemoryTransport` without error
-- `tools/list` returns exactly the **eleven** expected tool names
+- `tools/list` returns exactly the **twelve** expected tool names
 
 ### Part II — MT: Move-To Tool (MT)
 
@@ -67,7 +67,16 @@ Verifies that tools return `isError: true` with a descriptive message for invali
 | ER-unknown | call to an unknown tool name |
 | ER-open | `openNova` rejection |
 
-### Part VI — HT: HTTP transport (infrastructure — not automated)
+### Part VI — DC: Disconnect tool
+
+Verifies the `disconnect` tool that closes the active serial connection.
+
+| test ID | description |
+| --- | --- |
+| DC-01 | `disconnect` when connected closes the connection and returns `'disconnected'` |
+| DC-02 | `disconnect` when not connected returns `'not connected'` without error |
+
+### Part VII — HT: HTTP transport (infrastructure — not automated)
 
 The HTTP transport (`--transport http`) wraps the already end-to-end-tested `createServer()` with a standard Node.js HTTP server and the MCP SDK's `StreamableHTTPServerTransport`. It is not covered by automated unit tests because it requires a live TCP socket; the correctness of `createServer()` is already verified by Parts I–III.
 

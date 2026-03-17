@@ -1,7 +1,7 @@
 {
   "name": "nova-control-command",
   "description": "CLI for controlling a NOVA DIY Artificial Intelligence Robot by Creoqode",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "type": "module",
   "keywords": [
     "nova",
