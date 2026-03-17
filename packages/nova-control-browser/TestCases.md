@@ -85,13 +85,16 @@ Test cases for the `nova-control-browser` package, grouped by test file.
 |---|---|---|
 | RS-01 | empty script | resolves; `home` and `sendServoState` not called |
 | RS-02 | blank lines and `#` comment lines only | resolves; no controller method called |
-| RS-03 | `home` | `Nova.home()` called once |
-| RS-04 | `shift-to 100` | `Nova.shiftHeadTo(100)` called |
+| RS-03 | `home` | `Nova.home(undefined)` called once |
+| RS-03b | `home 500` | `Nova.home(500)` called once |
+| RS-04 | `shift-to 100` | `Nova.shiftHeadTo(100, undefined)` called |
+| RS-04b | `shift-to 100 500` | `Nova.shiftHeadTo(100, 500)` called |
 | RS-05 | `roll-to 60` | `Nova.rollHeadTo(60)` called |
 | RS-06 | `pitch-to 80` | `Nova.pitchHeadTo(80)` called |
 | RS-07 | `rotate-to 120` | `Nova.rotateBodyTo(120)` called |
 | RS-08 | `lift-to 30` | `Nova.liftHeadTo(30)` called |
-| RS-09 | `move shift-to 100 rotate-to 120` | `Nova.State` set to `{ s1:100, s4:120 }`; `sendServoState` called once |
+| RS-09 | `move shift-to 100 rotate-to 120` | `Nova.moveTo({ s1:100, s4:120 }, undefined)` called |
+| RS-09b | `move shift-to 100 rotate-to 120 within-ms 500` | `Nova.moveTo({ s1:100, s4:120 }, 500)` called |
 | RS-10 | `wait 0` | resolves without error |
 | RS-11 | multi-line `home\nshift-to 100` | commands executed in order |
 | RS-12 | unknown command on line 2 | rejects with error containing `'line 2'` |

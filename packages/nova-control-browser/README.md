@@ -134,16 +134,16 @@ Supported commands:
 
 | command | description |
 | --- | --- |
-| `home` | send all servos to home positions |
-| `shift-to <deg>` | s1 — head forward / back |
-| `roll-to <deg>` | s2 — head CW / CCW |
-| `pitch-to <deg>` | s3 — head up / down |
-| `rotate-to <deg>` | s4 — body Z-axis rotation |
-| `lift-to <deg>` | s5 — secondary head axis |
-| `move [key val …]` | set multiple servos atomically (e.g. `move shift-to 100 rotate-to 120`) |
+| `home [<within_ms>]` | send all servos to home positions |
+| `shift-to <deg> [<within_ms>]` | s1 — head forward / back |
+| `roll-to <deg> [<within_ms>]` | s2 — head CW / CCW |
+| `pitch-to <deg> [<within_ms>]` | s3 — head up / down |
+| `rotate-to <deg> [<within_ms>]` | s4 — body Z-axis rotation |
+| `lift-to <deg> [<within_ms>]` | s5 — secondary head axis |
+| `move [shift-to <deg>] [roll-to <deg>] [pitch-to <deg>] [rotate-to <deg>] [lift-to <deg>] [within-ms <ms>]` | set multiple servos atomically (e.g. `move shift-to 100 rotate-to 120 within-ms 500`) |
 | `wait <ms>` | pause for the given number of milliseconds |
 
-Throws a descriptive error containing the line number if an unknown command or invalid argument is encountered.
+Each command is fully awaited before the next begins. Throws a descriptive error containing the line number if an unknown command or invalid argument is encountered.
 
 ### Types
 

@@ -33,13 +33,15 @@
 | # | Description | Expected |
 |---|---|---|
 | CMD-01 | `home` | `Nova.home()` called; exit code 0 |
-| CMD-02 | `shift-to 100` | `Nova.State = { s1:100 }`; `sendServoState()` called; exit code 0 |
-| CMD-03 | `roll-to 60` | `Nova.State = { s2:60 }`; `sendServoState()` called; exit code 0 |
-| CMD-04 | `pitch-to 80` | `Nova.State = { s3:80 }`; `sendServoState()` called; exit code 0 |
-| CMD-05 | `rotate-to 120` | `Nova.State = { s4:120 }`; `sendServoState()` called; exit code 0 |
-| CMD-06 | `lift-to 90` | `Nova.State = { s5:90 }`; `sendServoState()` called; exit code 0 |
-| CMD-07 | `move --shift-to 100` | `Nova.State = { s1:100 }`; `sendServoState()` called; exit code 0 |
-| CMD-08 | `move --shift-to 100 --rotate-to 120` | `Nova.State = { s1:100, s4:120 }`; `sendServoState()` called; exit code 0 |
+| CMD-02 | `shift-to 100` | `Nova.shiftHeadTo(100)` called; exit code 0 |
+| CMD-02b | `shift-to 100 --within-ms 500` | `Nova.shiftHeadTo(100, 500)` called; exit code 0 |
+| CMD-03 | `roll-to 60` | `Nova.rollHeadTo(60)` called; exit code 0 |
+| CMD-04 | `pitch-to 80` | `Nova.pitchHeadTo(80)` called; exit code 0 |
+| CMD-05 | `rotate-to 120` | `Nova.rotateBodyTo(120)` called; exit code 0 |
+| CMD-06 | `lift-to 90` | `Nova.liftHeadTo(90)` called; exit code 0 |
+| CMD-07 | `move --shift-to 100` | `Nova.moveTo({ s1:100 })` called; exit code 0 |
+| CMD-08 | `move --shift-to 100 --rotate-to 120` | `Nova.moveTo({ s1:100, s4:120 })` called; exit code 0 |
+| CMD-08b | `move --shift-to 100 --rotate-to 120 --within-ms 500` | `Nova.moveTo({ s1:100, s4:120 }, 500)` called; exit code 0 |
 | CMD-09 | `move` without any servo option | exit code 2; error message mentions `--shift-to` |
 | CMD-10 | `wait 100` | resolves after ~100 ms; exit code 0 |
 | CMD-11 | `wait 0` | resolves immediately; exit code 0 |

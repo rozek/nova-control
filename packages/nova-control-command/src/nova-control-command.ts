@@ -153,9 +153,11 @@ import { runScript }    from './ScriptRunner.js'
 
     Program.command('home')
       .description('send all servos to their home positions')
-      .action(async () => {
-        const Nova = await getController()
-        await Nova.home()
+      .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
+      .action(async (Options) => {
+        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Nova     = await getController()
+        await Nova.home(WithinMS)
       })
 
   /**** move ****/
@@ -167,6 +169,7 @@ import { runScript }    from './ScriptRunner.js'
       .option('--pitch-to <angle>',  'pitch head up (>110°) or down (<110°) — s3')
       .option('--rotate-to <angle>', 'rotate body around Z-axis — s4')
       .option('--lift-to <angle>',   'lift head on secondary axis, range 20°–150° — s5')
+      .option('--within-ms <ms>',    'move smoothly over this many milliseconds (trapezoidal ramp)')
       .action(async (Options) => {
         const Update:ServoUpdate = {}
         if (Options.shiftTo  != null) { Update.s1 = Number(Options.shiftTo) }
@@ -181,9 +184,9 @@ import { runScript }    from './ScriptRunner.js'
             ExitCodes.UsageError
           )
         }
-        const Nova  = await getController()
-        Nova.State  = Update
-        await Nova.sendServoState()
+        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Nova     = await getController()
+        await Nova.moveTo(Update, WithinMS)
       })
 
   /**** shift-to / roll-to / pitch-to / rotate-to / lift-to ****/
@@ -191,46 +194,51 @@ import { runScript }    from './ScriptRunner.js'
     Program.command('shift-to')
       .description('shift head forward (>90°) or back (<90°) — s1')
       .argument('<angle>', 'target angle in degrees')
-      .action(async (AngleArg:string) => {
-        const Nova = await getController()
-        Nova.State = { s1:Number(AngleArg) }
-        await Nova.sendServoState()
+      .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
+      .action(async (AngleArg:string, Options) => {
+        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Nova     = await getController()
+        await Nova.shiftHeadTo(Number(AngleArg), WithinMS)
       })
 
     Program.command('roll-to')
       .description('roll head clockwise (>90°) or counter-clockwise (<90°) — s2')
       .argument('<angle>', 'target angle in degrees')
-      .action(async (AngleArg:string) => {
-        const Nova = await getController()
-        Nova.State = { s2:Number(AngleArg) }
-        await Nova.sendServoState()
+      .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
+      .action(async (AngleArg:string, Options) => {
+        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Nova     = await getController()
+        await Nova.rollHeadTo(Number(AngleArg), WithinMS)
       })
 
     Program.command('pitch-to')
       .description('pitch head up (>110°) or down (<110°) — s3')
       .argument('<angle>', 'target angle in degrees')
-      .action(async (AngleArg:string) => {
-        const Nova = await getController()
-        Nova.State = { s3:Number(AngleArg) }
-        await Nova.sendServoState()
+      .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
+      .action(async (AngleArg:string, Options) => {
+        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Nova     = await getController()
+        await Nova.pitchHeadTo(Number(AngleArg), WithinMS)
       })
 
     Program.command('rotate-to')
       .description('rotate body around Z-axis — s4')
       .argument('<angle>', 'target angle in degrees')
-      .action(async (AngleArg:string) => {
-        const Nova = await getController()
-        Nova.State = { s4:Number(AngleArg) }
-        await Nova.sendServoState()
+      .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
+      .action(async (AngleArg:string, Options) => {
+        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Nova     = await getController()
+        await Nova.rotateBodyTo(Number(AngleArg), WithinMS)
       })
 
     Program.command('lift-to')
       .description('lift head on secondary axis, range 20°–150° — s5')
       .argument('<angle>', 'target angle in degrees')
-      .action(async (AngleArg:string) => {
-        const Nova = await getController()
-        Nova.State = { s5:Number(AngleArg) }
-        await Nova.sendServoState()
+      .option('--within-ms <ms>', 'move smoothly over this many milliseconds (trapezoidal ramp)')
+      .action(async (AngleArg:string, Options) => {
+        const WithinMS = (Options.withinMs != null) ? Number(Options.withinMs) : undefined
+        const Nova     = await getController()
+        await Nova.liftHeadTo(Number(AngleArg), WithinMS)
       })
 
   /**** wait ****/

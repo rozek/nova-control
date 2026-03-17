@@ -400,12 +400,14 @@
 
 /**** runScript — execute a multi-line script of movement commands ****/
 // one command per line; blank lines and '#'-comment lines are skipped.
+// each command is fully awaited before the next one begins.
 // supported commands:
-//   home
-//   shift-to <angle>    roll-to <angle>    pitch-to <angle>
-//   rotate-to <angle>   lift-to <angle>
+//   home [<within_ms>]
+//   shift-to <angle> [<within_ms>]    roll-to <angle> [<within_ms>]
+//   pitch-to <angle> [<within_ms>]    rotate-to <angle> [<within_ms>]
+//   lift-to <angle> [<within_ms>]
 //   move [shift-to <angle>] [roll-to <angle>] [pitch-to <angle>]
-//        [rotate-to <angle>] [lift-to <angle>]
+//        [rotate-to <angle>] [lift-to <angle>] [within-ms <ms>]
 //   wait <ms>
 
   export async function runScript (Nova:NovaController, Script:string):Promise<void> {
@@ -418,7 +420,13 @@
       const Command = Tokens[0].toLowerCase()
       switch (true) {
         case (Command === 'home'): {
-          await Nova.home()
+          const WithinMS = (Tokens[1] != null) ? Number(Tokens[1]) : undefined
+          if ((WithinMS != null) && isNaN(WithinMS)) {
+            throw new Error(
+              `line ${LineNo}: home: within_ms must be a number, got '${Tokens[1]}'`
+            )
+          }
+          await Nova.home(WithinMS)
           break
         }
         case (Command === 'shift-to'): {
@@ -428,7 +436,13 @@
               `line ${LineNo}: shift-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          await Nova.shiftHeadTo(Angle)
+          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((WithinMS != null) && isNaN(WithinMS)) {
+            throw new Error(
+              `line ${LineNo}: shift-to: within_ms must be a number, got '${Tokens[2]}'`
+            )
+          }
+          await Nova.shiftHeadTo(Angle, WithinMS)
           break
         }
         case (Command === 'roll-to'): {
@@ -438,7 +452,13 @@
               `line ${LineNo}: roll-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          await Nova.rollHeadTo(Angle)
+          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((WithinMS != null) && isNaN(WithinMS)) {
+            throw new Error(
+              `line ${LineNo}: roll-to: within_ms must be a number, got '${Tokens[2]}'`
+            )
+          }
+          await Nova.rollHeadTo(Angle, WithinMS)
           break
         }
         case (Command === 'pitch-to'): {
@@ -448,7 +468,13 @@
               `line ${LineNo}: pitch-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          await Nova.pitchHeadTo(Angle)
+          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((WithinMS != null) && isNaN(WithinMS)) {
+            throw new Error(
+              `line ${LineNo}: pitch-to: within_ms must be a number, got '${Tokens[2]}'`
+            )
+          }
+          await Nova.pitchHeadTo(Angle, WithinMS)
           break
         }
         case (Command === 'rotate-to'): {
@@ -458,7 +484,13 @@
               `line ${LineNo}: rotate-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          await Nova.rotateBodyTo(Angle)
+          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((WithinMS != null) && isNaN(WithinMS)) {
+            throw new Error(
+              `line ${LineNo}: rotate-to: within_ms must be a number, got '${Tokens[2]}'`
+            )
+          }
+          await Nova.rotateBodyTo(Angle, WithinMS)
           break
         }
         case (Command === 'lift-to'): {
@@ -468,14 +500,30 @@
               `line ${LineNo}: lift-to requires a numeric angle, got '${Tokens[1]}'`
             )
           }
-          await Nova.liftHeadTo(Angle)
+          const WithinMS = (Tokens[2] != null) ? Number(Tokens[2]) : undefined
+          if ((WithinMS != null) && isNaN(WithinMS)) {
+            throw new Error(
+              `line ${LineNo}: lift-to: within_ms must be a number, got '${Tokens[2]}'`
+            )
+          }
+          await Nova.liftHeadTo(Angle, WithinMS)
           break
         }
         case (Command === 'move'): {
           const Update:ServoUpdate = {}
+          let WithinMS:number|undefined
           for (let j = 1; j < Tokens.length; j += 2) {
-            const Key = Tokens[j].toLowerCase()
+            const Key   = Tokens[j].toLowerCase()
             const Angle = Number(Tokens[j+1])
+            if (Key === 'within-ms') {
+              if (isNaN(Angle)) {
+                throw new Error(
+                  `line ${LineNo}: within-ms requires a numeric value, got '${Tokens[j+1]}'`
+                )
+              }
+              WithinMS = Angle
+              break
+            }
             if (isNaN(Angle)) {
               throw new Error(
                 `line ${LineNo}: '${Key}' requires a numeric angle, got '${Tokens[j+1]}'`
@@ -497,8 +545,7 @@
               `line ${LineNo}: move requires at least one servo argument`
             )
           }
-          Nova.State = Update
-          await Nova.sendServoState()
+          await Nova.moveTo(Update, WithinMS)
           break
         }
         case (Command === 'wait'): {

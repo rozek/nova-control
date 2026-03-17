@@ -89,16 +89,18 @@ All tests inject `--port /dev/test` via `_setupForTests` and use a mocked `openN
 
 ### 2. Individual servo commands (`shift-to`, `roll-to`, `pitch-to`, `rotate-to`, `lift-to`)
 
-- **CMD-02** — `shift-to 100` sets `Nova.State = { s1:100 }` and calls `sendServoState()`
-- **CMD-03** — `roll-to 60` sets `Nova.State = { s2:60 }` and calls `sendServoState()`
-- **CMD-04** — `pitch-to 80` sets `Nova.State = { s3:80 }` and calls `sendServoState()`
-- **CMD-05** — `rotate-to 120` sets `Nova.State = { s4:120 }` and calls `sendServoState()`
-- **CMD-06** — `lift-to 90` sets `Nova.State = { s5:90 }` and calls `sendServoState()`
+- **CMD-02** — `shift-to 100` calls `Nova.shiftHeadTo(100)` and returns exit code 0
+- **CMD-02b** — `shift-to 100 --within-ms 500` calls `Nova.shiftHeadTo(100, 500)` and returns exit code 0
+- **CMD-03** — `roll-to 60` calls `Nova.rollHeadTo(60)` and returns exit code 0
+- **CMD-04** — `pitch-to 80` calls `Nova.pitchHeadTo(80)` and returns exit code 0
+- **CMD-05** — `rotate-to 120` calls `Nova.rotateBodyTo(120)` and returns exit code 0
+- **CMD-06** — `lift-to 90` calls `Nova.liftHeadTo(90)` and returns exit code 0
 
 ### 3. `move`
 
-- **CMD-07** — `move --shift-to 100` sets `{ s1:100 }` and calls `sendServoState()`
-- **CMD-08** — `move --shift-to 100 --rotate-to 120` sets `{ s1:100, s4:120 }` and calls `sendServoState()`
+- **CMD-07** — `move --shift-to 100` calls `Nova.moveTo({ s1:100 })` and returns exit code 0
+- **CMD-08** — `move --shift-to 100 --rotate-to 120` calls `Nova.moveTo({ s1:100, s4:120 })` and returns exit code 0
+- **CMD-08b** — `move --shift-to 100 --rotate-to 120 --within-ms 500` calls `Nova.moveTo({ s1:100, s4:120 }, 500)` and returns exit code 0
 - **CMD-09** — `move` without any servo option returns exit code 2 (UsageError)
 
 ### 4. `wait`

@@ -147,13 +147,16 @@ packets through the (mocked) Node.js serial port.
 ### happy path
 - **RS-01** — empty string resolves without calling any method
 - **RS-02** — blank lines and `#`-prefixed comment lines are skipped
-- **RS-03** — `home` calls `Nova.home()`
-- **RS-04** — `shift-to 100` calls `Nova.shiftHeadTo(100)`
+- **RS-03** — `home` calls `Nova.home(undefined)`
+- **RS-03b** — `home 500` calls `Nova.home(500)`
+- **RS-04** — `shift-to 100` calls `Nova.shiftHeadTo(100, undefined)`
+- **RS-04b** — `shift-to 100 500` calls `Nova.shiftHeadTo(100, 500)`
 - **RS-05** — `roll-to 60` calls `Nova.rollHeadTo(60)`
 - **RS-06** — `pitch-to 80` calls `Nova.pitchHeadTo(80)`
 - **RS-07** — `rotate-to 120` calls `Nova.rotateBodyTo(120)`
 - **RS-08** — `lift-to 30` calls `Nova.liftHeadTo(30)`
-- **RS-09** — `move shift-to 100 rotate-to 120` sets `Nova.State = { s1:100, s4:120 }` and calls `sendServoState()` once
+- **RS-09** — `move shift-to 100 rotate-to 120` calls `Nova.moveTo({ s1:100, s4:120 }, undefined)`
+- **RS-09b** — `move shift-to 100 rotate-to 120 within-ms 500` calls `Nova.moveTo({ s1:100, s4:120 }, 500)`
 - **RS-10** — `wait 0` resolves without error
 - **RS-11** — a multi-line script executes commands in the order they appear
 

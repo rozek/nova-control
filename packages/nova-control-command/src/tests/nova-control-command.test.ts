@@ -16,29 +16,24 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 /**** hoisted variables shared between vi.mock factories and test bodies ****/
 
 const Hoisted = vi.hoisted(() => {
-  let LastStateUpdate:Record<string,number>|undefined
-
   const MockNova = {
     home:           vi.fn().mockResolvedValue(undefined),
+    shiftHeadTo:    vi.fn().mockResolvedValue(undefined),
+    rollHeadTo:     vi.fn().mockResolvedValue(undefined),
+    pitchHeadTo:    vi.fn().mockResolvedValue(undefined),
+    rotateBodyTo:   vi.fn().mockResolvedValue(undefined),
+    liftHeadTo:     vi.fn().mockResolvedValue(undefined),
+    moveTo:         vi.fn().mockResolvedValue(undefined),
     sendServoState: vi.fn().mockResolvedValue(undefined),
     destroy:        vi.fn(),
 
-    get State () {
-      return { s1:90, s2:90, s3:110, s4:90, s5:95 }
-    },
-    set State (Update:Record<string,number>) {
-      LastStateUpdate = Update
-    },
+    get State () { return { s1:90, s2:90, s3:110, s4:90, s5:95 } },
+    set State (_:Record<string,number>) { /* no-op in mock */ },
   }
 
   const openNova = vi.fn().mockResolvedValue(MockNova)
 
-  return {
-    MockNova,
-    openNova,
-    get LastStateUpdate () { return LastStateUpdate },
-    clearLastStateUpdate () { LastStateUpdate = undefined },
-  }
+  return { MockNova, openNova }
 })
 
 vi.mock('nova-control-node', () => ({
@@ -62,7 +57,6 @@ import {
 beforeEach(() => {
   _setupForTests('/dev/test')
   vi.clearAllMocks()
-  Hoisted.clearLastStateUpdate()
 })
 
 afterEach(() => {
@@ -85,55 +79,60 @@ describe('servo commands (CMD)', () => {
 
 /**** CMD-02 – CMD-06: individual servo commands ****/
 
-  it('CMD-02: shift-to sets s1 and calls sendServoState()', async () => {
+  it('CMD-02: shift-to calls Nova.shiftHeadTo() with the given angle', async () => {
     const Code = await executeTokens(['shift-to', '100'])
     expect(Code).toBe(0)
-    expect(Hoisted.LastStateUpdate).toEqual({ s1:100 })
-    expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+    expect(Hoisted.MockNova.shiftHeadTo).toHaveBeenCalledWith(100, undefined)
   })
 
-  it('CMD-03: roll-to sets s2 and calls sendServoState()', async () => {
+  it('CMD-03: roll-to calls Nova.rollHeadTo() with the given angle', async () => {
     const Code = await executeTokens(['roll-to', '60'])
     expect(Code).toBe(0)
-    expect(Hoisted.LastStateUpdate).toEqual({ s2:60 })
-    expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+    expect(Hoisted.MockNova.rollHeadTo).toHaveBeenCalledWith(60, undefined)
   })
 
-  it('CMD-04: pitch-to sets s3 and calls sendServoState()', async () => {
+  it('CMD-04: pitch-to calls Nova.pitchHeadTo() with the given angle', async () => {
     const Code = await executeTokens(['pitch-to', '80'])
     expect(Code).toBe(0)
-    expect(Hoisted.LastStateUpdate).toEqual({ s3:80 })
-    expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+    expect(Hoisted.MockNova.pitchHeadTo).toHaveBeenCalledWith(80, undefined)
   })
 
-  it('CMD-05: rotate-to sets s4 and calls sendServoState()', async () => {
+  it('CMD-05: rotate-to calls Nova.rotateBodyTo() with the given angle', async () => {
     const Code = await executeTokens(['rotate-to', '120'])
     expect(Code).toBe(0)
-    expect(Hoisted.LastStateUpdate).toEqual({ s4:120 })
-    expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+    expect(Hoisted.MockNova.rotateBodyTo).toHaveBeenCalledWith(120, undefined)
   })
 
-  it('CMD-06: lift-to sets s5 and calls sendServoState()', async () => {
+  it('CMD-06: lift-to calls Nova.liftHeadTo() with the given angle', async () => {
     const Code = await executeTokens(['lift-to', '90'])
     expect(Code).toBe(0)
-    expect(Hoisted.LastStateUpdate).toEqual({ s5:90 })
-    expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+    expect(Hoisted.MockNova.liftHeadTo).toHaveBeenCalledWith(90, undefined)
+  })
+
+  it('CMD-06b: shift-to --within-ms passes the duration to Nova.shiftHeadTo()', async () => {
+    const Code = await executeTokens(['shift-to', '100', '--within-ms', '800'])
+    expect(Code).toBe(0)
+    expect(Hoisted.MockNova.shiftHeadTo).toHaveBeenCalledWith(100, 800)
   })
 
 /**** CMD-07 – CMD-09: move ****/
 
-  it('CMD-07: move --shift-to sets s1 and calls sendServoState()', async () => {
+  it('CMD-07: move --shift-to calls Nova.moveTo() with the servo update', async () => {
     const Code = await executeTokens(['move', '--shift-to', '100'])
     expect(Code).toBe(0)
-    expect(Hoisted.LastStateUpdate).toEqual({ s1:100 })
-    expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+    expect(Hoisted.MockNova.moveTo).toHaveBeenCalledWith({ s1:100 }, undefined)
   })
 
-  it('CMD-08: move --shift-to and --rotate-to sets both servos in one packet', async () => {
+  it('CMD-08: move --shift-to and --rotate-to calls Nova.moveTo() with both servos', async () => {
     const Code = await executeTokens(['move', '--shift-to', '100', '--rotate-to', '120'])
     expect(Code).toBe(0)
-    expect(Hoisted.LastStateUpdate).toEqual({ s1:100, s4:120 })
-    expect(Hoisted.MockNova.sendServoState).toHaveBeenCalledOnce()
+    expect(Hoisted.MockNova.moveTo).toHaveBeenCalledWith({ s1:100, s4:120 }, undefined)
+  })
+
+  it('CMD-08b: move --shift-to --within-ms passes the duration to Nova.moveTo()', async () => {
+    const Code = await executeTokens(['move', '--shift-to', '100', '--within-ms', '600'])
+    expect(Code).toBe(0)
+    expect(Hoisted.MockNova.moveTo).toHaveBeenCalledWith({ s1:100 }, 600)
   })
 
   it('CMD-09: move without any servo option returns exit code 2', async () => {

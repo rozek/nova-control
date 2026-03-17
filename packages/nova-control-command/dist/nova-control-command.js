@@ -144,28 +144,29 @@ function S(e = !1) {
 	return t.description("NOVA robot arm CLI").allowUnknownOption(!1).configureOutput({ writeErr: () => {} }), e || (t.option("--port <path>", "serial port path (e.g. /dev/ttyACM0 on Linux/macOS, COM3 on Windows)").option("--baud <rate>", "baud rate (default: 9600)", "9600").option("--on-error <mode>", "script error mode: stop | continue | ask (default: stop)"), t.hook("preAction", (e, t) => {
 		let n = t.optsWithGlobals();
 		p = n.port, m = Number(n.baud ?? "9600"), h = n.onError ?? "stop";
-	})), t.command("home").description("send all servos to their home positions").action(async () => {
-		await (await _()).home();
-	}), t.command("move").description("set one or more servo positions without interrupting the others").option("--shift-to <angle>", "shift head forward (>90°) or back (<90°) — s1").option("--roll-to <angle>", "roll head clockwise (>90°) or counter-clockwise (<90°) — s2").option("--pitch-to <angle>", "pitch head up (>110°) or down (<110°) — s3").option("--rotate-to <angle>", "rotate body around Z-axis — s4").option("--lift-to <angle>", "lift head on secondary axis, range 20°–150° — s5").action(async (e) => {
+	})), t.command("home").description("send all servos to their home positions").option("--within-ms <ms>", "move smoothly over this many milliseconds (trapezoidal ramp)").action(async (e) => {
+		let t = e.withinMs == null ? void 0 : Number(e.withinMs);
+		await (await _()).home(t);
+	}), t.command("move").description("set one or more servo positions without interrupting the others").option("--shift-to <angle>", "shift head forward (>90°) or back (<90°) — s1").option("--roll-to <angle>", "roll head clockwise (>90°) or counter-clockwise (<90°) — s2").option("--pitch-to <angle>", "pitch head up (>110°) or down (<110°) — s3").option("--rotate-to <angle>", "rotate body around Z-axis — s4").option("--lift-to <angle>", "lift head on secondary axis, range 20°–150° — s5").option("--within-ms <ms>", "move smoothly over this many milliseconds (trapezoidal ramp)").action(async (e) => {
 		let t = {};
 		if (e.shiftTo != null && (t.s1 = Number(e.shiftTo)), e.rollTo != null && (t.s2 = Number(e.rollTo)), e.pitchTo != null && (t.s3 = Number(e.pitchTo)), e.rotateTo != null && (t.s4 = Number(e.rotateTo)), e.liftTo != null && (t.s5 = Number(e.liftTo)), Object.keys(t).length === 0) throw new d("move: specify at least one servo option (--shift-to, --roll-to, --pitch-to, --rotate-to, --lift-to)", u.UsageError);
-		let n = await _();
-		n.State = t, await n.sendServoState();
-	}), t.command("shift-to").description("shift head forward (>90°) or back (<90°) — s1").argument("<angle>", "target angle in degrees").action(async (e) => {
-		let t = await _();
-		t.State = { s1: Number(e) }, await t.sendServoState();
-	}), t.command("roll-to").description("roll head clockwise (>90°) or counter-clockwise (<90°) — s2").argument("<angle>", "target angle in degrees").action(async (e) => {
-		let t = await _();
-		t.State = { s2: Number(e) }, await t.sendServoState();
-	}), t.command("pitch-to").description("pitch head up (>110°) or down (<110°) — s3").argument("<angle>", "target angle in degrees").action(async (e) => {
-		let t = await _();
-		t.State = { s3: Number(e) }, await t.sendServoState();
-	}), t.command("rotate-to").description("rotate body around Z-axis — s4").argument("<angle>", "target angle in degrees").action(async (e) => {
-		let t = await _();
-		t.State = { s4: Number(e) }, await t.sendServoState();
-	}), t.command("lift-to").description("lift head on secondary axis, range 20°–150° — s5").argument("<angle>", "target angle in degrees").action(async (e) => {
-		let t = await _();
-		t.State = { s5: Number(e) }, await t.sendServoState();
+		let n = e.withinMs == null ? void 0 : Number(e.withinMs);
+		await (await _()).moveTo(t, n);
+	}), t.command("shift-to").description("shift head forward (>90°) or back (<90°) — s1").argument("<angle>", "target angle in degrees").option("--within-ms <ms>", "move smoothly over this many milliseconds (trapezoidal ramp)").action(async (e, t) => {
+		let n = t.withinMs == null ? void 0 : Number(t.withinMs);
+		await (await _()).shiftHeadTo(Number(e), n);
+	}), t.command("roll-to").description("roll head clockwise (>90°) or counter-clockwise (<90°) — s2").argument("<angle>", "target angle in degrees").option("--within-ms <ms>", "move smoothly over this many milliseconds (trapezoidal ramp)").action(async (e, t) => {
+		let n = t.withinMs == null ? void 0 : Number(t.withinMs);
+		await (await _()).rollHeadTo(Number(e), n);
+	}), t.command("pitch-to").description("pitch head up (>110°) or down (<110°) — s3").argument("<angle>", "target angle in degrees").option("--within-ms <ms>", "move smoothly over this many milliseconds (trapezoidal ramp)").action(async (e, t) => {
+		let n = t.withinMs == null ? void 0 : Number(t.withinMs);
+		await (await _()).pitchHeadTo(Number(e), n);
+	}), t.command("rotate-to").description("rotate body around Z-axis — s4").argument("<angle>", "target angle in degrees").option("--within-ms <ms>", "move smoothly over this many milliseconds (trapezoidal ramp)").action(async (e, t) => {
+		let n = t.withinMs == null ? void 0 : Number(t.withinMs);
+		await (await _()).rotateBodyTo(Number(e), n);
+	}), t.command("lift-to").description("lift head on secondary axis, range 20°–150° — s5").argument("<angle>", "target angle in degrees").option("--within-ms <ms>", "move smoothly over this many milliseconds (trapezoidal ramp)").action(async (e, t) => {
+		let n = t.withinMs == null ? void 0 : Number(t.withinMs);
+		await (await _()).liftHeadTo(Number(e), n);
 	}), t.command("wait").description("pause for <ms> milliseconds before the next command").argument("<ms>", "duration in milliseconds (non-negative number)").action(async (e) => {
 		let t = Number(e);
 		if (isNaN(t) || t < 0) throw new d(`wait: invalid duration '${e}' — expected a non-negative number`, u.UsageError);

@@ -163,13 +163,13 @@ npx nova-control-command --port /dev/ttyACM0 shell
 
 | command | arguments / options | description |
 | --- | --- | --- |
-| `home` | — | send all servos to home positions |
-| `shift-to <angle>` | — | s1: head forward / back |
-| `roll-to <angle>` | — | s2: head CW / CCW |
-| `pitch-to <angle>` | — | s3: head up / down |
-| `rotate-to <angle>` | — | s4: body Z-axis |
-| `lift-to <angle>` | — | s5: secondary head axis |
-| `move` | `--shift-to`, `--roll-to`, `--pitch-to`, `--rotate-to`, `--lift-to` | set one or more servos in one packet |
+| `home` | `[--within-ms <ms>]` | send all servos to home positions |
+| `shift-to <angle>` | `[--within-ms <ms>]` | s1: head forward / back |
+| `roll-to <angle>` | `[--within-ms <ms>]` | s2: head CW / CCW |
+| `pitch-to <angle>` | `[--within-ms <ms>]` | s3: head up / down |
+| `rotate-to <angle>` | `[--within-ms <ms>]` | s4: body Z-axis |
+| `lift-to <angle>` | `[--within-ms <ms>]` | s5: secondary head axis |
+| `move` | `--shift-to`, `--roll-to`, `--pitch-to`, `--rotate-to`, `--lift-to` (at least one required); `[--within-ms <ms>]` | set one or more servos in one packet |
 | `wait <ms>` | — | pause for the given number of milliseconds |
 | `state` | — | print the current servo state as JSON |
 | `shell` | — | start an interactive REPL |
@@ -180,9 +180,9 @@ One command per line; `#` begins a comment; blank lines are ignored:
 
 ```
 # move to a position, pause, then go home
-shift-to 120
+shift-to 120 --within-ms 1000
 wait 500
-home
+home --within-ms 500
 ```
 
 ---
