@@ -166,65 +166,83 @@ async function y(e, t) {
 		if (r === "" || r.startsWith("#")) continue;
 		let a = r.split(/\s+/), o = a[0].toLowerCase();
 		switch (!0) {
-			case o === "home":
-				await e.home();
+			case o === "home": {
+				let t = a[1] == null ? void 0 : Number(a[1]);
+				if (t != null && isNaN(t)) throw Error(`line ${i}: home: within_ms must be a number, got '${a[1]}'`);
+				await e.home(t);
 				break;
+			}
 			case o === "shift-to": {
 				let t = Number(a[1]);
 				if (isNaN(t)) throw Error(`line ${i}: shift-to requires a numeric angle, got '${a[1]}'`);
-				await e.shiftHeadTo(t);
+				let n = a[2] == null ? void 0 : Number(a[2]);
+				if (n != null && isNaN(n)) throw Error(`line ${i}: shift-to: within_ms must be a number, got '${a[2]}'`);
+				await e.shiftHeadTo(t, n);
 				break;
 			}
 			case o === "roll-to": {
 				let t = Number(a[1]);
 				if (isNaN(t)) throw Error(`line ${i}: roll-to requires a numeric angle, got '${a[1]}'`);
-				await e.rollHeadTo(t);
+				let n = a[2] == null ? void 0 : Number(a[2]);
+				if (n != null && isNaN(n)) throw Error(`line ${i}: roll-to: within_ms must be a number, got '${a[2]}'`);
+				await e.rollHeadTo(t, n);
 				break;
 			}
 			case o === "pitch-to": {
 				let t = Number(a[1]);
 				if (isNaN(t)) throw Error(`line ${i}: pitch-to requires a numeric angle, got '${a[1]}'`);
-				await e.pitchHeadTo(t);
+				let n = a[2] == null ? void 0 : Number(a[2]);
+				if (n != null && isNaN(n)) throw Error(`line ${i}: pitch-to: within_ms must be a number, got '${a[2]}'`);
+				await e.pitchHeadTo(t, n);
 				break;
 			}
 			case o === "rotate-to": {
 				let t = Number(a[1]);
 				if (isNaN(t)) throw Error(`line ${i}: rotate-to requires a numeric angle, got '${a[1]}'`);
-				await e.rotateBodyTo(t);
+				let n = a[2] == null ? void 0 : Number(a[2]);
+				if (n != null && isNaN(n)) throw Error(`line ${i}: rotate-to: within_ms must be a number, got '${a[2]}'`);
+				await e.rotateBodyTo(t, n);
 				break;
 			}
 			case o === "lift-to": {
 				let t = Number(a[1]);
 				if (isNaN(t)) throw Error(`line ${i}: lift-to requires a numeric angle, got '${a[1]}'`);
-				await e.liftHeadTo(t);
+				let n = a[2] == null ? void 0 : Number(a[2]);
+				if (n != null && isNaN(n)) throw Error(`line ${i}: lift-to: within_ms must be a number, got '${a[2]}'`);
+				await e.liftHeadTo(t, n);
 				break;
 			}
 			case o === "move": {
-				let t = {};
+				let t = {}, n;
 				for (let e = 1; e < a.length; e += 2) {
-					let n = a[e].toLowerCase(), r = Number(a[e + 1]);
-					if (isNaN(r)) throw Error(`line ${i}: '${n}' requires a numeric angle, got '${a[e + 1]}'`);
-					switch (n) {
+					let r = a[e].toLowerCase(), o = Number(a[e + 1]);
+					if (r === "within-ms") {
+						if (isNaN(o)) throw Error(`line ${i}: within-ms requires a numeric value, got '${a[e + 1]}'`);
+						n = o;
+						break;
+					}
+					if (isNaN(o)) throw Error(`line ${i}: '${r}' requires a numeric angle, got '${a[e + 1]}'`);
+					switch (r) {
 						case "shift-to":
-							t.s1 = r;
+							t.s1 = o;
 							break;
 						case "roll-to":
-							t.s2 = r;
+							t.s2 = o;
 							break;
 						case "pitch-to":
-							t.s3 = r;
+							t.s3 = o;
 							break;
 						case "rotate-to":
-							t.s4 = r;
+							t.s4 = o;
 							break;
 						case "lift-to":
-							t.s5 = r;
+							t.s5 = o;
 							break;
-						default: throw Error(`line ${i}: unknown move argument '${n}'`);
+						default: throw Error(`line ${i}: unknown move argument '${r}'`);
 					}
 				}
 				if (Object.keys(t).length === 0) throw Error(`line ${i}: move requires at least one servo argument`);
-				e.State = t, await e.sendServoState();
+				await e.moveTo(t, n);
 				break;
 			}
 			case o === "wait": {
@@ -555,7 +573,7 @@ async function B(e) {
 function V() {
 	let e = new i({
 		name: "nova-control-mcp-server",
-		version: "0.0.7"
+		version: "0.0.8"
 	}, { capabilities: { tools: {} } });
 	return e.setRequestHandler(c, async () => ({ tools: O })), e.setRequestHandler(s, async (e) => {
 		let t = e.params.name, n = e.params.arguments ?? {};

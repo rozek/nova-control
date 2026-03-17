@@ -1,7 +1,7 @@
 {
   "name": "nova-control-browser",
   "description": "Control a NOVA DIY Artificial Intelligence Robot by Creoqode from a browser",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "type": "module",
   "keywords": [
     "nova",
