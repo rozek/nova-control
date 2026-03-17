@@ -8,7 +8,7 @@ Control a [Creoqode Nova DIY AI Robot](https://www.kickstarter.com/projects/creo
 
 This monorepo contains four npm packages and one Arduino sketch:
 
-| package | target | what it does |
+| Package | Target | Remarks |
 | --- | --- | --- |
 | `nova-control-browser` | browser | Web Serial API — Chrome / Edge 89+ |
 | `nova-control-node` | Node.js | `serialport` package — any OS |
